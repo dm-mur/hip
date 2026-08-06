@@ -1,0 +1,64 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: hip-postgres
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    ports:
+      - "5435:5432"
+
+    volumes:
+      - hip-postgres-data:/var/lib/postgresql/data
+      - ../database/init:/docker-entrypoint-initdb.d
+
+    networks:
+      - hip-network
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: hip-pgadmin
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    ports:
+      - "5050:80"
+
+    depends_on:
+      - postgres
+
+    networks:
+      - hip-network
+
+  flyway:
+    image: flyway/flyway:11
+    container_name: hip-flyway
+
+    depends_on:
+      - postgres
+
+    env_file:
+      - .env
+
+    volumes:
+      - ../database/migrations:/flyway/sql
+
+    command:
+      - migrate
+
+    environment:
+      FLYWAY_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      FLYWAY_USER: ${POSTGRES_USER}
+      FLYWAY_PASSWORD: ${POSTGRES_PASSWORD}
+
+    networks:
+      - hip-network
+
+networks:
+  hip-network:
+
+volumes:
+  hip-postgres-data:
