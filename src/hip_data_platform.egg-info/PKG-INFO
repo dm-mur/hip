@@ -1,0 +1,118 @@
+Metadata-Version: 2.4
+Name: hip-data-platform
+Version: 0.1.0
+Summary: HIP - reusable data engineering platform for DHIS2 and other data sources
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENCE
+Requires-Dist: pandas<3.0,>=2.2
+Requires-Dist: requests<3.0,>=2.31
+Requires-Dist: psycopg[binary]<4.0,>=3.2
+Requires-Dist: python-dotenv<2.0,>=1.0
+Provides-Extra: dev
+Requires-Dist: pytest<9.0,>=8.0; extra == "dev"
+Requires-Dist: pytest-cov<7.0,>=5.0; extra == "dev"
+Requires-Dist: ruff<1.0,>=0.6; extra == "dev"
+Dynamic: license-file
+
+# Health Intelligence Platform (HIP)
+
+An open-source, AI-ready health data engineering platform for ingesting, validating, transforming, and analyzing public health data.
+
+HIP is designed around modern data engineering principles including metadata-driven ingestion, layered data warehousing, infrastructure as code, database versioning, and workflow orchestration.
+
+---
+
+## Vision
+
+To provide a reusable, enterprise-grade platform for integrating health information systems such as DHIS2, EMRs, laboratory systems, and other public health data sources into a unified analytics platform.
+
+---
+
+## Current Status
+
+🚧 Under Active Development
+
+Current milestone:
+
+- Platform Foundation ✅
+
+---
+
+## Technology Stack
+
+- PostgreSQL 17
+- Docker
+- Flyway
+- Python
+- Git & GitHub
+
+Planned:
+
+- Apache Airflow
+- dbt
+- FastAPI
+- Great Expectations
+- AI-assisted metadata generation
+
+---
+
+## Architecture
+
+```
+Source Systems
+      │
+      ▼
+Bronze Layer
+      │
+      ▼
+Silver Layer
+      │
+      ▼
+Gold Layer
+      │
+      ▼
+Analytics & AI
+```
+
+---
+
+## Repository Structure
+
+```text
+hip/
+
+docker/
+database/
+docs/
+ingestion/
+transformations/
+analytics/
+tests/
+```
+
+---
+
+## Getting Started
+
+Coming soon.
+
+---
+
+## Roadmap
+
+- ✅ Platform Foundation
+- ⏳ Enterprise Audit Framework
+- ⏳ Metadata Repository
+- ⏳ DHIS2 Metadata Ingestion
+- ⏳ DHIS2 Aggregate Data Ingestion
+- ⏳ Silver Transformations
+- ⏳ Gold Analytics
+- ⏳ Airflow Orchestration
+- ⏳ AI Integration
+
+---
+
+## License
+
+MIT License
