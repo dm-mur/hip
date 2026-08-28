@@ -18,18 +18,23 @@ class DHIS2Transformer:
 
     def __init__(
         self,
-        batch_id: str,
         source_instance: str,
         mapping: dict[str, str] | None = None,
     ) -> None:
-        self.batch_id = batch_id
         self.source_instance = source_instance
         self.mapping = mapping or DEFAULT_DHIS2_MAPPING
 
-    def transform(self, record: dict[str, Any]) -> DHIS2Record:
+    def transform(
+        self,
+        record: dict[str, Any],
+        context: Any | None = None,
+    ) -> DHIS2Record:
         """
         Transform one raw DHIS2 record into a canonical DHIS2Record.
         """
+
+        if context is None:
+            raise ValueError("Pipeline context with batch_id is required")
 
         canonical = {
             field: record.get(source_field)
@@ -39,7 +44,7 @@ class DHIS2Transformer:
         record_hash = self._generate_record_hash(record)
 
         return DHIS2Record(
-            batch_id=self.batch_id,
+            batch_id=context.batch_id,
             source_instance=self.source_instance,
             dataset_id=canonical["dataset_id"],
             data_element=canonical["data_element"],

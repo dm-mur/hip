@@ -1,10 +1,16 @@
+from hip.pipelines.context import PipelineContext
 from hip.transformers.dhis2 import DHIS2Transformer
 
 
 def test_dhis2_transformer_creates_canonical_record():
     transformer = DHIS2Transformer(
-        batch_id="batch-001",
         source_instance="kenya_demo",
+    )
+
+    context = PipelineContext(
+        batch_id="batch-001",
+        environment="TEST",
+        initiated_by="pytest",
     )
 
     raw_record = {
@@ -17,7 +23,10 @@ def test_dhis2_transformer_creates_canonical_record():
         "value": "100",
     }
 
-    result = transformer.transform(raw_record)
+    result = transformer.transform(
+        raw_record,
+        context=context,
+    )
 
     assert result.batch_id == "batch-001"
     assert result.source_instance == "kenya_demo"
