@@ -8,6 +8,8 @@ canonical HIP records.
 from abc import ABC, abstractmethod
 from typing import Any
 
+from hip.pipelines.context import PipelineContext
+
 
 class BaseTransformer(ABC):
     """Abstract base class for all HIP transformers."""
@@ -16,7 +18,7 @@ class BaseTransformer(ABC):
     def transform(
         self,
         record: dict[str, Any],
-        context: Any | None = None,
+        context: PipelineContext,
     ) -> Any:
         """
         Transform one source record into a canonical record.
