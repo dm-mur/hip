@@ -9,7 +9,7 @@ from hip.loaders.postgres import PostgresLoader
 from hip.pipelines.dhis2 import DHIS2Pipeline
 from hip.transformers.dhis2 import DHIS2Transformer
 from hip.validators.dhis2 import DHIS2Validator
-from hip.pipelines.context import PipelineContext
+from hip.pipelines.config import PipelineConfig
 
 
 TEST_RECORD_HASH = None
@@ -80,6 +80,11 @@ def test_dhis2_pipeline_writes_to_real_postgres():
         validator=validator,
         loader=loader,
         audit=audit,
+        config=PipelineConfig(
+            environment="TEST",
+            initiated_by="pytest",
+            batch_name="DHIS2 Integration Test",
+        ),
     )
 
     # ------------------------------------------------------------------

@@ -5,15 +5,16 @@ Coordinates extraction, transformation, validation,
 and loading of DHIS2 records.
 """
 
-from hip.pipelines.context import PipelineContext
 from typing import Any
 
+from hip.audit.service import AuditService
 from hip.extractors.base import BaseExtractor
 from hip.loaders.base import BaseLoader
 from hip.pipelines.base import BasePipeline
+from hip.pipelines.config import PipelineConfig
+from hip.pipelines.context import PipelineContext
 from hip.transformers.base import BaseTransformer
 from hip.validators.base import BaseValidator
-from hip.audit.service import AuditService
 
 class DHIS2Pipeline(BasePipeline):
     """Pipeline for processing DHIS2 data."""
@@ -25,6 +26,7 @@ class DHIS2Pipeline(BasePipeline):
         validator: BaseValidator,
         loader: BaseLoader,
         audit: AuditService,
+        config: PipelineConfig,
     ) -> None:
         super().__init__(
             extractor=extractor,
@@ -33,6 +35,7 @@ class DHIS2Pipeline(BasePipeline):
             loader=loader,
         )
         self.audit = audit
+        self.config = config
 
     def run(
         self,
@@ -43,15 +46,15 @@ class DHIS2Pipeline(BasePipeline):
 
         batch_id = self.audit.start_batch(
             source_system="DHIS2",
-            batch_name="DHIS2 Pipeline",
-            environment="DEV",
-            initiated_by="system",
+            batch_name=self.config.batch_name,
+            environment=self.config.environment,
+            initiated_by=self.config.initiated_by,
         )
-        
+
         context = PipelineContext(
             batch_id=batch_id,
-            environment="DEV",
-            initiated_by="system",
+            environment=self.config.environment,
+            initiated_by=self.config.initiated_by,
         )
         
         raw_records = []

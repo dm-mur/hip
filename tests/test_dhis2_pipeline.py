@@ -1,3 +1,4 @@
+from hip.pipelines.config import PipelineConfig
 from hip.audit.service import AuditService
 from unittest.mock import Mock
 
@@ -37,6 +38,11 @@ def test_dhis2_pipeline_orchestrates_extract_transform_validate_load():
         validator=validator,
         loader=loader,
         audit=audit,
+        config=PipelineConfig(
+            environment="DEV",
+            initiated_by="system",
+            batch_name="DHIS2 Pipeline",
+        ),
     )
 
     result = pipeline.run(
@@ -109,7 +115,11 @@ def test_dhis2_pipeline_does_not_load_invalid_records():
         validator=validator,
         loader=loader,
         audit=audit,
-
+        config=PipelineConfig(
+            environment="DEV",
+            initiated_by="system",
+            batch_name="DHIS2 Pipeline",
+        ),
     )
 
     result = pipeline.run(
@@ -149,6 +159,11 @@ def test_dhis2_pipeline_marks_batch_failed_when_extraction_fails():
         validator=validator,
         loader=loader,
         audit=audit,
+        config=PipelineConfig(
+            environment="DEV",
+            initiated_by="system",
+            batch_name="DHIS2 Pipeline",
+        ),
     )
 
     try:
@@ -203,6 +218,11 @@ def test_dhis2_pipeline_marks_batch_failed_when_transformation_fails():
         validator=validator,
         loader=loader,
         audit=audit,
+        config=PipelineConfig(
+            environment="DEV",
+            initiated_by="system",
+            batch_name="DHIS2 Pipeline",
+        ),
     )
 
     try:
@@ -254,6 +274,11 @@ def test_dhis2_pipeline_marks_batch_failed_when_loading_fails():
         validator=validator,
         loader=loader,
         audit=audit,
+        config=PipelineConfig(
+            environment="DEV",
+            initiated_by="system",
+            batch_name="DHIS2 Pipeline",
+        ),
     )
 
     try:
