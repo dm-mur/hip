@@ -52,10 +52,14 @@ class PostgresLoader(BaseLoader):
                         """
                         SELECT 1
                         FROM bronze.dhis2_data
-                        WHERE record_hash = %s
+                        WHERE source_instance = %s
+                        AND record_hash = %s
                         LIMIT 1
                         """,
-                        (record.record_hash,),
+                        (
+                            record.source_instance,
+                            record.record_hash,
+                        ),
                     )
 
                     if cursor.fetchone() is not None:

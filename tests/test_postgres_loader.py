@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from hip.config.database import DatabaseSettings
 from hip.loaders.postgres import PostgresLoader
 from hip.models.dhis2 import DHIS2Record
@@ -80,6 +82,60 @@ def test_postgres_loader_is_idempotent():
     assert count == 1
 
     # Clean up the test record.
+    with loader._connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                DELETE FROM bronze.dhis2_data
+                WHERE record_hash = %s
+                """,
+                (TEST_RECORD_HASH,),
+            )
+
+def test_postgres_loader_allows_same_hash_for_different_instances():
+    settings = DatabaseSettings.from_environment()
+    loader = PostgresLoader(settings)
+
+    record_1 = make_record()
+
+    record_2 = replace(
+        record_1,
+        source_instance="another_integration_test",
+    )
+
+    # Remove both possible test records so the test starts clean.
+    with loader._connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                DELETE FROM bronze.dhis2_data
+                WHERE record_hash = %s
+                """,
+                (TEST_RECORD_HASH,),
+            )
+
+    first_result = loader.load([record_1])
+    second_result = loader.load([record_2])
+
+    assert first_result == 1
+    assert second_result == 1
+
+    with loader._connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT COUNT(*)
+                FROM bronze.dhis2_data
+                WHERE record_hash = %s
+                """,
+                (TEST_RECORD_HASH,),
+            )
+
+            count = cursor.fetchone()[0]
+
+    assert count == 2
+
+    # Clean up both test records.
     with loader._connection() as connection:
         with connection.cursor() as cursor:
             cursor.execute(

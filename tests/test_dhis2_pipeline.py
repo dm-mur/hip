@@ -101,6 +101,7 @@ def test_dhis2_pipeline_does_not_load_invalid_records():
     loader.load.return_value = 1
 
     audit = Mock(spec=AuditService)
+    audit.start_batch.return_value = "batch-001"
 
     pipeline = DHIS2Pipeline(
         extractor=extractor,
@@ -120,6 +121,13 @@ def test_dhis2_pipeline_does_not_load_invalid_records():
 
     loader.load.assert_called_once_with(
         [transformed_1]
+    )
+    
+    audit.complete_batch.assert_called_once_with(
+        batch_id=audit.start_batch.return_value,
+        total_rows=2,
+        successful_rows=1,
+        failed_rows=1,
     )
     
 def test_dhis2_pipeline_marks_batch_failed_when_extraction_fails():
@@ -151,4 +159,124 @@ def test_dhis2_pipeline_marks_batch_failed_when_extraction_fails():
     except RuntimeError:
         pass
 
-    audit.fail_batch.assert_called_once()
+    audit.start_batch.assert_called_once_with(
+        source_system="DHIS2",
+        batch_name="DHIS2 Pipeline",
+        environment="DEV",
+        initiated_by="system",
+    )
+
+    audit.fail_batch.assert_called_once_with(
+        batch_id="batch-001",
+        total_rows=0,
+        successful_rows=0,
+        failed_rows=0,
+        remarks="DHIS2 API unavailable",
+    )
+
+    transformer.transform.assert_not_called()
+    validator.validate.assert_not_called()
+    loader.load.assert_not_called()
+    
+def test_dhis2_pipeline_marks_batch_failed_when_transformation_fails():
+    extractor = Mock()
+    transformer = Mock()
+    validator = Mock()
+    loader = Mock()
+    audit = Mock(spec=AuditService)
+
+    audit.start_batch.return_value = "batch-001"
+
+    extractor.extract.return_value = {
+        "data": [
+            {"id": "record-001"},
+        ]
+    }
+
+    transformer.transform.side_effect = RuntimeError(
+        "Invalid DHIS2 record structure"
+    )
+
+    pipeline = DHIS2Pipeline(
+        extractor=extractor,
+        transformer=transformer,
+        validator=validator,
+        loader=loader,
+        audit=audit,
+    )
+
+    try:
+        pipeline.run(
+            endpoint="/api/dataValueSets",
+            params={"period": "202608"},
+        )
+    except RuntimeError:
+        pass
+
+    audit.fail_batch.assert_called_once_with(
+        batch_id="batch-001",
+        total_rows=1,
+        successful_rows=0,
+        failed_rows=1,
+        remarks="Invalid DHIS2 record structure",
+    )
+
+    validator.validate.assert_not_called()
+    loader.load.assert_not_called()
+    
+def test_dhis2_pipeline_marks_batch_failed_when_loading_fails():
+    extractor = Mock()
+    transformer = Mock()
+    validator = Mock()
+    loader = Mock()
+    audit = Mock(spec=AuditService)
+
+    audit.start_batch.return_value = "batch-001"
+
+    extractor.extract.return_value = {
+        "data": [
+            {"id": "record-001"},
+        ]
+    }
+
+    transformed_record = Mock()
+
+    transformer.transform.return_value = transformed_record
+    validator.validate.return_value = True
+
+    loader.load.side_effect = RuntimeError(
+        "PostgreSQL connection failed"
+    )
+
+    pipeline = DHIS2Pipeline(
+        extractor=extractor,
+        transformer=transformer,
+        validator=validator,
+        loader=loader,
+        audit=audit,
+    )
+
+    try:
+        pipeline.run(
+            endpoint="/api/dataValueSets",
+            params={"period": "202608"},
+        )
+    except RuntimeError:
+        pass
+
+    audit.fail_batch.assert_called_once_with(
+        batch_id="batch-001",
+        total_rows=1,
+        successful_rows=0,
+        failed_rows=1,
+        remarks="PostgreSQL connection failed",
+    )
+    
+    extractor.extract.assert_called_once()
+    transformer.transform.assert_called_once()
+    validator.validate.assert_called_once_with(
+        transformed_record
+    )
+    loader.load.assert_called_once_with(
+        [transformed_record]
+    )
