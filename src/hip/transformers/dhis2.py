@@ -11,9 +11,10 @@ from typing import Any
 
 from hip.mappings.dhis2 import DEFAULT_DHIS2_MAPPING
 from hip.models.dhis2 import DHIS2Record
+from hip.transformers.base import BaseTransformer
 
 
-class DHIS2Transformer:
+class DHIS2Transformer(BaseTransformer):
     """Transform raw DHIS2 records into canonical HIP records."""
 
     def __init__(

@@ -1,5 +1,7 @@
 from hip.pipelines.context import PipelineContext
+from hip.transformers.base import BaseTransformer
 from hip.transformers.dhis2 import DHIS2Transformer
+
 
 
 def test_dhis2_transformer_creates_canonical_record():
@@ -37,3 +39,10 @@ def test_dhis2_transformer_creates_canonical_record():
 
     assert result.raw_payload == raw_record
     assert len(result.record_hash) == 64
+    
+def test_dhis2_transformer_implements_base_transformer():
+    transformer = DHIS2Transformer(
+        source_instance="test_dhis2",
+    )
+
+    assert isinstance(transformer, BaseTransformer)
