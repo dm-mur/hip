@@ -11,6 +11,16 @@ from hip.transformers.dhis2 import DHIS2Transformer
 from hip.validators.dhis2 import DHIS2Validator
 
 
+@pytest.fixture(autouse=True)
+def reset_pipeline_registry():
+    original_registry = PipelineFactory._registry.copy()
+
+    yield
+
+    PipelineFactory._registry.clear()
+    PipelineFactory._registry.update(original_registry)
+    
+    
 def test_factory_creates_dhis2_pipeline():
     dhis2_settings = DHIS2Settings(
         base_url="https://example.org",
@@ -62,3 +72,56 @@ def test_factory_rejects_unknown_pipeline_type():
             pipeline_config=None,
             source_instance="test_dhis2",
         )
+
+
+def test_factory_registry_returns_copy():
+    registry = PipelineFactory.registry()
+
+    registry.clear()
+
+    assert "dhis2" in PipelineFactory.registry()
+
+
+def test_factory_rejects_duplicate_registration():
+    with pytest.raises(
+        ValueError,
+        match="Pipeline type already registered",
+    ):
+        PipelineFactory.register(
+            "dhis2",
+            PipelineFactory.create_dhis2,
+        )
+
+def test_dhis2_pipeline_declares_pipeline_type():
+    assert DHIS2Pipeline.pipeline_type == "dhis2"
+    
+def test_factory_registers_custom_pipeline_creator():
+    def custom_creator(**kwargs):
+        return "custom-pipeline"
+
+    PipelineFactory.register(
+        "custom",
+        custom_creator,
+    )
+
+    assert "custom" in PipelineFactory.registry()
+    assert PipelineFactory.registry()["custom"] is custom_creator
+    
+def test_factory_creates_registered_custom_pipeline():
+    def custom_creator(**kwargs):
+        return "custom-pipeline"
+
+    PipelineFactory.register(
+        "custom",
+        custom_creator,
+    )
+
+    result = PipelineFactory.create(
+        pipeline_type="custom",
+        dhis2_settings=None,
+        database_settings=None,
+        pipeline_config=None,
+        source_instance="test",
+    )
+
+    assert result == "custom-pipeline"

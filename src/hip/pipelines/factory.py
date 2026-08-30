@@ -19,16 +19,32 @@ from hip.validators.dhis2 import DHIS2Validator
 class PipelineFactory:
     """Construct fully configured HIP pipelines."""
 
-    @staticmethod
-    def registry() -> dict[str, object]:
-        """Return the registered pipeline types."""
+    _registry: dict[str, object] = {}
 
-        return {
-            "dhis2": PipelineFactory.create_dhis2,
-        }
+    @classmethod
+    def register(
+        cls,
+        pipeline_type: str,
+        creator: object,
+    ) -> None:
+        """Register a pipeline creator."""
 
-    @staticmethod
+        if pipeline_type in cls._registry:
+            raise ValueError(
+                f"Pipeline type already registered: {pipeline_type}"
+            )
+
+        cls._registry[pipeline_type] = creator
+
+    @classmethod
+    def registry(cls) -> dict[str, object]:
+        """Return a copy of the registered pipeline types."""
+
+        return cls._registry.copy()
+
+    @classmethod
     def create(
+        cls,
         pipeline_type: str,
         dhis2_settings: DHIS2Settings,
         database_settings: DatabaseSettings,
@@ -37,14 +53,14 @@ class PipelineFactory:
     ) -> DHIS2Pipeline:
         """Create a pipeline from the registered pipeline types."""
 
-        creators = PipelineFactory.registry()
-
-        if pipeline_type not in creators:
+        if pipeline_type not in cls._registry:
             raise ValueError(
                 f"Unknown pipeline type: {pipeline_type}"
             )
 
-        return creators[pipeline_type](
+        creator = cls._registry[pipeline_type]
+
+        return creator(
             dhis2_settings=dhis2_settings,
             database_settings=database_settings,
             pipeline_config=pipeline_config,
@@ -107,3 +123,9 @@ class PipelineFactory:
             audit=audit,
             config=pipeline_config,
         )
+
+
+PipelineFactory.register(
+    DHIS2Pipeline.pipeline_type,
+    PipelineFactory.create_dhis2,
+)
