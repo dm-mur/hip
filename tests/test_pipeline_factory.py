@@ -1,3 +1,5 @@
+import pytest
+
 from hip.config.database import DatabaseSettings
 from hip.config.settings import DHIS2Settings
 from hip.extractors.dhis2 import DHIS2Extractor
@@ -45,3 +47,18 @@ def test_factory_creates_dhis2_pipeline():
 
     assert pipeline.transformer.source_instance == "test_dhis2"
     assert pipeline.config == pipeline_config
+
+
+def test_factory_registry_contains_dhis2():
+    assert "dhis2" in PipelineFactory.registry()
+
+
+def test_factory_rejects_unknown_pipeline_type():
+    with pytest.raises(ValueError, match="Unknown pipeline type"):
+        PipelineFactory.create(
+            pipeline_type="unknown",
+            dhis2_settings=None,
+            database_settings=None,
+            pipeline_config=None,
+            source_instance="test_dhis2",
+        )
