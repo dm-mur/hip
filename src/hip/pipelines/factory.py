@@ -7,7 +7,7 @@ does not need to manually construct every pipeline component.
 
 from hip.audit.service import AuditService
 from hip.config.database import DatabaseSettings
-from hip.config.settings import DHIS2Settings
+from hip.config.source import DHIS2SourceConfig
 from hip.extractors.dhis2 import DHIS2Extractor
 from hip.loaders.postgres import PostgresLoader
 from hip.pipelines.config import PipelineConfig
@@ -46,10 +46,9 @@ class PipelineFactory:
     def create(
         cls,
         pipeline_type: str,
-        dhis2_settings: DHIS2Settings,
+        source_config: DHIS2SourceConfig,
         database_settings: DatabaseSettings,
         pipeline_config: PipelineConfig,
-        source_instance: str,
     ) -> DHIS2Pipeline:
         """Create a pipeline from the registered pipeline types."""
 
@@ -61,35 +60,30 @@ class PipelineFactory:
         creator = cls._registry[pipeline_type]
 
         return creator(
-            dhis2_settings=dhis2_settings,
+            source_config=source_config,
             database_settings=database_settings,
             pipeline_config=pipeline_config,
-            source_instance=source_instance,
         )
 
     @staticmethod
     def create_dhis2(
-        dhis2_settings: DHIS2Settings,
+        source_config: DHIS2SourceConfig,
         database_settings: DatabaseSettings,
         pipeline_config: PipelineConfig,
-        source_instance: str,
     ) -> DHIS2Pipeline:
         """
         Create a fully configured DHIS2 pipeline.
 
         Parameters
         ----------
-        dhis2_settings:
-            Configuration for the DHIS2 source instance.
+        source_config:
+            Configuration identifying the DHIS2 source instance.
 
         database_settings:
             Configuration for the PostgreSQL destination.
 
         pipeline_config:
             Execution configuration for the pipeline.
-
-        source_instance:
-            Logical identifier for the DHIS2 source instance.
 
         Returns
         -------
@@ -98,13 +92,12 @@ class PipelineFactory:
         """
 
         extractor = DHIS2Extractor(
-            settings=dhis2_settings,
+            settings=source_config.settings,
         )
 
         transformer = DHIS2Transformer(
-            source_instance=source_instance,
+            source_instance=source_config.source_instance,
         )
-
         validator = DHIS2Validator()
 
         loader = PostgresLoader(

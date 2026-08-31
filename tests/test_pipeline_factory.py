@@ -2,6 +2,7 @@ import pytest
 
 from hip.config.database import DatabaseSettings
 from hip.config.settings import DHIS2Settings
+from hip.config.source import DHIS2SourceConfig
 from hip.extractors.dhis2 import DHIS2Extractor
 from hip.loaders.postgres import PostgresLoader
 from hip.pipelines.base import BasePipeline
@@ -20,13 +21,16 @@ def reset_pipeline_registry():
 
     PipelineFactory._registry.clear()
     PipelineFactory._registry.update(original_registry)
-    
-    
+
+
 def test_factory_creates_dhis2_pipeline():
-    dhis2_settings = DHIS2Settings(
-        base_url="https://example.org",
-        username="test_user",
-        password="test_password",
+    source_config = DHIS2SourceConfig(
+        source_instance="test_dhis2",
+        settings=DHIS2Settings(
+            base_url="https://example.org",
+            username="test_user",
+            password="test_password",
+        ),
     )
 
     database_settings = DatabaseSettings(
@@ -44,10 +48,9 @@ def test_factory_creates_dhis2_pipeline():
     )
 
     pipeline = PipelineFactory.create_dhis2(
-        dhis2_settings=dhis2_settings,
+        source_config=source_config,
         database_settings=database_settings,
         pipeline_config=pipeline_config,
-        source_instance="test_dhis2",
     )
 
     assert isinstance(pipeline, DHIS2Pipeline)
@@ -65,13 +68,21 @@ def test_factory_registry_contains_dhis2():
 
 
 def test_factory_rejects_unknown_pipeline_type():
+    source_config = DHIS2SourceConfig(
+        source_instance="test_dhis2",
+        settings=DHIS2Settings(
+            base_url="https://example.org",
+            username="test_user",
+            password="test_password",
+        ),
+    )
+
     with pytest.raises(ValueError, match="Unknown pipeline type"):
         PipelineFactory.create(
             pipeline_type="unknown",
-            dhis2_settings=None,
+            source_config=source_config,
             database_settings=None,
             pipeline_config=None,
-            source_instance="test_dhis2",
         )
 
 
@@ -93,9 +104,11 @@ def test_factory_rejects_duplicate_registration():
             PipelineFactory.create_dhis2,
         )
 
+
 def test_dhis2_pipeline_declares_pipeline_type():
     assert DHIS2Pipeline.pipeline_type == "dhis2"
-    
+
+
 def test_factory_registers_custom_pipeline_creator():
     def custom_creator(**kwargs):
         return "custom-pipeline"
@@ -107,7 +120,8 @@ def test_factory_registers_custom_pipeline_creator():
 
     assert "custom" in PipelineFactory.registry()
     assert PipelineFactory.registry()["custom"] is custom_creator
-    
+
+
 def test_factory_creates_registered_custom_pipeline():
     def custom_creator(**kwargs):
         return "custom-pipeline"
@@ -119,13 +133,13 @@ def test_factory_creates_registered_custom_pipeline():
 
     result = PipelineFactory.create(
         pipeline_type="custom",
-        dhis2_settings=None,
+        source_config=None,
         database_settings=None,
         pipeline_config=None,
-        source_instance="test",
     )
 
     assert result == "custom-pipeline"
+
 
 def test_factory_registry_contains_callable_creators():
     registry = PipelineFactory.registry()
@@ -136,10 +150,13 @@ def test_factory_registry_contains_callable_creators():
 
 
 def test_factory_registry_creators_return_base_pipeline():
-    dhis2_settings = DHIS2Settings(
-        base_url="https://example.org",
-        username="test_user",
-        password="test_password",
+    source_config = DHIS2SourceConfig(
+        source_instance="test_dhis2",
+        settings=DHIS2Settings(
+            base_url="https://example.org",
+            username="test_user",
+            password="test_password",
+        ),
     )
 
     database_settings = DatabaseSettings(
@@ -160,10 +177,9 @@ def test_factory_registry_creators_return_base_pipeline():
 
     for creator in registry.values():
         pipeline = creator(
-            dhis2_settings=dhis2_settings,
+            source_config=source_config,
             database_settings=database_settings,
             pipeline_config=pipeline_config,
-            source_instance="test_dhis2",
         )
 
         assert isinstance(pipeline, BasePipeline)
