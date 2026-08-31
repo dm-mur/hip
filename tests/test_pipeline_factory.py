@@ -4,6 +4,7 @@ from hip.config.database import DatabaseSettings
 from hip.config.settings import DHIS2Settings
 from hip.extractors.dhis2 import DHIS2Extractor
 from hip.loaders.postgres import PostgresLoader
+from hip.pipelines.base import BasePipeline
 from hip.pipelines.config import PipelineConfig
 from hip.pipelines.dhis2 import DHIS2Pipeline
 from hip.pipelines.factory import PipelineFactory
@@ -125,3 +126,44 @@ def test_factory_creates_registered_custom_pipeline():
     )
 
     assert result == "custom-pipeline"
+
+def test_factory_registry_contains_callable_creators():
+    registry = PipelineFactory.registry()
+
+    for pipeline_type, creator in registry.items():
+        assert isinstance(pipeline_type, str)
+        assert callable(creator)
+
+
+def test_factory_registry_creators_return_base_pipeline():
+    dhis2_settings = DHIS2Settings(
+        base_url="https://example.org",
+        username="test_user",
+        password="test_password",
+    )
+
+    database_settings = DatabaseSettings(
+        host="localhost",
+        port=5435,
+        database="hip",
+        username="postgres",
+        password="test_password",
+    )
+
+    pipeline_config = PipelineConfig(
+        environment="TEST",
+        initiated_by="pytest",
+        batch_name="Factory Test",
+    )
+
+    registry = PipelineFactory.registry()
+
+    for creator in registry.values():
+        pipeline = creator(
+            dhis2_settings=dhis2_settings,
+            database_settings=database_settings,
+            pipeline_config=pipeline_config,
+            source_instance="test_dhis2",
+        )
+
+        assert isinstance(pipeline, BasePipeline)
