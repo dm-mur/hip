@@ -19,6 +19,8 @@ from hip.validators.base import BaseValidator
 class DHIS2Pipeline(BasePipeline):
     """Pipeline for processing DHIS2 data."""
 
+    pipeline_type = "dhis2"
+
     def __init__(
         self,
         extractor: BaseExtractor,

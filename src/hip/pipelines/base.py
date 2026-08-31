@@ -18,6 +18,8 @@ from hip.validators.base import BaseValidator
 class BasePipeline(ABC):
     """Abstract base class for HIP data pipelines."""
 
+    pipeline_type: str
+
     def __init__(
         self,
         extractor: BaseExtractor,
