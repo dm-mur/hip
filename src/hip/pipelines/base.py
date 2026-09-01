@@ -7,10 +7,10 @@ or destination-specific logic.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from hip.extractors.base import BaseExtractor
 from hip.loaders.base import BaseLoader
+from hip.pipelines.request import PipelineRequest
 from hip.transformers.base import BaseTransformer
 from hip.validators.base import BaseValidator
 
@@ -33,9 +33,14 @@ class BasePipeline(ABC):
         self.loader = loader
 
     @abstractmethod
-    def run(self, **kwargs: Any) -> int:
+    def run(self, request: PipelineRequest) -> int:
         """
         Execute the pipeline.
+
+        Parameters
+        ----------
+        request:
+            Runtime request describing what the pipeline should execute.
 
         Returns
         -------

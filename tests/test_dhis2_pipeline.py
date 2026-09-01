@@ -3,6 +3,7 @@ from hip.audit.service import AuditService
 from unittest.mock import Mock
 
 from hip.pipelines.dhis2 import DHIS2Pipeline
+from hip.pipelines.request import PipelineRequest
 
 
 def test_dhis2_pipeline_orchestrates_extract_transform_validate_load():
@@ -46,8 +47,10 @@ def test_dhis2_pipeline_orchestrates_extract_transform_validate_load():
     )
 
     result = pipeline.run(
-        endpoint="/api/dataValueSets",
-        params={"period": "202608"},
+        request=PipelineRequest(
+            endpoint="/api/dataValueSets",
+            params={"period": "202608"},
+        )
     )
 
     audit.start_batch.assert_called_once_with(
@@ -123,8 +126,10 @@ def test_dhis2_pipeline_does_not_load_invalid_records():
     )
 
     result = pipeline.run(
-        endpoint="/api/dataValueSets",
-        params={"period": "202608"},
+        request=PipelineRequest(
+            endpoint="/api/dataValueSets",
+            params={"period": "202608"},
+        )
     )
 
     assert result == 1
@@ -168,8 +173,10 @@ def test_dhis2_pipeline_marks_batch_failed_when_extraction_fails():
 
     try:
         pipeline.run(
-            endpoint="/api/dataValueSets",
-            params={"period": "202608"},
+            request=PipelineRequest(
+                endpoint="/api/dataValueSets",
+                params={"period": "202608"},
+            )
         )
     except RuntimeError:
         pass
@@ -227,8 +234,10 @@ def test_dhis2_pipeline_marks_batch_failed_when_transformation_fails():
 
     try:
         pipeline.run(
-            endpoint="/api/dataValueSets",
-            params={"period": "202608"},
+            request=PipelineRequest(
+                endpoint="/api/dataValueSets",
+                params={"period": "202608"},
+            )
         )
     except RuntimeError:
         pass
@@ -283,8 +292,10 @@ def test_dhis2_pipeline_marks_batch_failed_when_loading_fails():
 
     try:
         pipeline.run(
-            endpoint="/api/dataValueSets",
-            params={"period": "202608"},
+            request=PipelineRequest(
+                endpoint="/api/dataValueSets",
+                params={"period": "202608"},
+            )
         )
     except RuntimeError:
         pass

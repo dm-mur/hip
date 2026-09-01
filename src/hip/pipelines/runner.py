@@ -56,7 +56,4 @@ class PipelineRunner:
             pipeline_config=pipeline_config,
         )
 
-        return pipeline.run(
-            endpoint=request.endpoint,
-            params=request.params,
-        )
+        return pipeline.run(request=request)

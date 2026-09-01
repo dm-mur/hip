@@ -7,6 +7,7 @@ from hip.config.database import DatabaseSettings
 from hip.extractors.dhis2 import DHIS2Extractor
 from hip.loaders.postgres import PostgresLoader
 from hip.pipelines.dhis2 import DHIS2Pipeline
+from hip.pipelines.request import PipelineRequest
 from hip.transformers.dhis2 import DHIS2Transformer
 from hip.validators.dhis2 import DHIS2Validator
 from hip.pipelines.config import PipelineConfig
@@ -118,10 +119,11 @@ def test_dhis2_pipeline_writes_to_real_postgres():
     # ------------------------------------------------------------------
 
     result = pipeline.run(
-        endpoint="/api/dataValueSets",
-        params={"period": "202608"},
+        request=PipelineRequest(
+            endpoint="/api/dataValueSets",
+            params={"period": "202608"},
+        )
     )
-  
     batch_id = batch_ids[0]
 
     assert result == 1

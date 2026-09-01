@@ -63,8 +63,7 @@ def test_pipeline_runner_creates_and_runs_pipeline():
     )
 
     mock_pipeline.run.assert_called_once_with(
-        endpoint="/api/dataValueSets",
-        params=None,
+        request=request,
     )
 
 
@@ -134,9 +133,5 @@ def test_pipeline_runner_passes_execution_arguments_to_pipeline():
     assert result == 10
 
     mock_pipeline.run.assert_called_once_with(
-        endpoint="/api/dataValueSets",
-        params={
-            "period": "2026-08",
-            "dataSet": "TEST_DATASET",
-        },
+        request=request,
     )

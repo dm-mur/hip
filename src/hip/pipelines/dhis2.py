@@ -13,6 +13,7 @@ from hip.loaders.base import BaseLoader
 from hip.pipelines.base import BasePipeline
 from hip.pipelines.config import PipelineConfig
 from hip.pipelines.context import PipelineContext
+from hip.pipelines.request import PipelineRequest
 from hip.transformers.base import BaseTransformer
 from hip.validators.base import BaseValidator
 
@@ -41,8 +42,7 @@ class DHIS2Pipeline(BasePipeline):
 
     def run(
         self,
-        endpoint: str,
-        params: dict[str, Any] | None = None,
+        request: PipelineRequest,
     ) -> int:
         """Extract, transform, validate, and load DHIS2 records."""
 
@@ -63,8 +63,8 @@ class DHIS2Pipeline(BasePipeline):
 
         try:
             response = self.extractor.extract(
-                endpoint=endpoint,
-                params=params,
+                endpoint=request.endpoint,
+                params=request.params,
             )
 
             raw_records = response.get("data", [])
