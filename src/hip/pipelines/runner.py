@@ -5,9 +5,11 @@ PipelineRunner coordinates pipeline creation and execution
 without containing source-specific ETL logic.
 """
 
-from typing import Any
-
+from hip.config.database import DatabaseSettings
+from hip.config.source import DHIS2SourceConfig
+from hip.pipelines.config import PipelineConfig
 from hip.pipelines.factory import PipelineFactory
+from hip.pipelines.request import PipelineRequest
 
 
 class PipelineRunner:
@@ -16,7 +18,10 @@ class PipelineRunner:
     @staticmethod
     def run(
         pipeline_type: str,
-        **kwargs: Any,
+        source_config: DHIS2SourceConfig,
+        database_settings: DatabaseSettings,
+        pipeline_config: PipelineConfig,
+        request: PipelineRequest,
     ) -> int:
         """
         Create and execute a pipeline.
@@ -26,9 +31,17 @@ class PipelineRunner:
         pipeline_type:
             Registered pipeline type to execute.
 
-        **kwargs:
-            Configuration and runtime arguments required by
-            the registered pipeline creator and pipeline itself.
+        source_config:
+            Configuration for the source system.
+
+        database_settings:
+            Configuration for the destination database.
+
+        pipeline_config:
+            Configuration governing the pipeline execution.
+
+        request:
+            Runtime request describing what the pipeline should execute.
 
         Returns
         -------
@@ -38,12 +51,12 @@ class PipelineRunner:
 
         pipeline = PipelineFactory.create(
             pipeline_type=pipeline_type,
-            source_config=kwargs["source_config"],
-            database_settings=kwargs["database_settings"],
-            pipeline_config=kwargs["pipeline_config"],
+            source_config=source_config,
+            database_settings=database_settings,
+            pipeline_config=pipeline_config,
         )
 
         return pipeline.run(
-            endpoint=kwargs["endpoint"],
-            params=kwargs.get("params"),
+            endpoint=request.endpoint,
+            params=request.params,
         )

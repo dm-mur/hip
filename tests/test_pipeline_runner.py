@@ -4,6 +4,7 @@ from hip.config.database import DatabaseSettings
 from hip.config.settings import DHIS2Settings
 from hip.config.source import DHIS2SourceConfig
 from hip.pipelines.config import PipelineConfig
+from hip.pipelines.request import PipelineRequest
 from hip.pipelines.runner import PipelineRunner
 
 
@@ -39,12 +40,17 @@ def test_pipeline_runner_creates_and_runs_pipeline():
         return_value=mock_pipeline,
     ) as mock_create:
 
+        request = PipelineRequest(
+            endpoint="/api/dataValueSets",
+            params=None,
+        )
+
         result = PipelineRunner.run(
             pipeline_type="dhis2",
             source_config=source_config,
             database_settings=database_settings,
             pipeline_config=pipeline_config,
-            endpoint="/api/dataValueSets",
+            request=request,
         )
 
     assert result == 10
@@ -71,6 +77,9 @@ def test_pipeline_runner_rejects_unknown_pipeline_type():
             source_config=None,
             database_settings=None,
             pipeline_config=None,
+            request=PipelineRequest(
+                endpoint="/api/dataValueSets",
+            ),
         )
 
 
@@ -106,16 +115,20 @@ def test_pipeline_runner_passes_execution_arguments_to_pipeline():
         return_value=mock_pipeline,
     ):
 
-        result = PipelineRunner.run(
-            pipeline_type="dhis2",
-            source_config=source_config,
-            database_settings=database_settings,
-            pipeline_config=pipeline_config,
+        request = PipelineRequest(
             endpoint="/api/dataValueSets",
             params={
                 "period": "2026-08",
                 "dataSet": "TEST_DATASET",
             },
+        )
+
+        result = PipelineRunner.run(
+            pipeline_type="dhis2",
+            source_config=source_config,
+            database_settings=database_settings,
+            pipeline_config=pipeline_config,
+            request=request,
         )
 
     assert result == 10

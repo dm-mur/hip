@@ -11,6 +11,7 @@ from typing import Any
 
 from hip.mappings.dhis2 import DEFAULT_DHIS2_MAPPING
 from hip.models.dhis2 import DHIS2Record
+from hip.pipelines.context import PipelineContext
 from hip.transformers.base import BaseTransformer
 
 
@@ -28,14 +29,9 @@ class DHIS2Transformer(BaseTransformer):
     def transform(
         self,
         record: dict[str, Any],
-        context: Any | None = None,
+        context: PipelineContext,
     ) -> DHIS2Record:
-        """
-        Transform one raw DHIS2 record into a canonical DHIS2Record.
-        """
-
-        if context is None:
-            raise ValueError("Pipeline context with batch_id is required")
+        """Transform one raw DHIS2 record into a canonical DHIS2Record."""
 
         canonical = {
             field: record.get(source_field)
