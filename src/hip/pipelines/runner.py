@@ -43,4 +43,7 @@ class PipelineRunner:
             pipeline_config=kwargs["pipeline_config"],
         )
 
-        return pipeline.run()
+        return pipeline.run(
+            endpoint=kwargs["endpoint"],
+            params=kwargs.get("params"),
+        )
