@@ -2,6 +2,7 @@ from unittest.mock import Mock, patch
 
 from hip.config.settings import DHIS2Settings
 from hip.extractors.dhis2 import DHIS2Extractor
+from hip.pipelines.request import PipelineRequest
 
 
 def test_dhis2_extractor_returns_json():
@@ -30,10 +31,12 @@ def test_dhis2_extractor_returns_json():
         return_value=mock_response,
     ) as mock_get:
 
-        result = extractor.extract(
+        request = PipelineRequest(
             endpoint="/api/dataValueSets",
             params={"period": "202608"},
         )
+
+        result = extractor.extract(request)
 
     mock_get.assert_called_once_with(
         "https://dhis2.example.org/api/dataValueSets",

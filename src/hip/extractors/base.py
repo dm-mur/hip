@@ -8,6 +8,7 @@ to the validation and transformation layers.
 
 from abc import ABC, abstractmethod
 from typing import Any
+from hip.pipelines.request import PipelineRequest
 
 
 class BaseExtractor(ABC):
@@ -18,7 +19,7 @@ class BaseExtractor(ABC):
     """
 
     @abstractmethod
-    def extract(self, **kwargs: Any) -> Any:
+    def extract(self, request: PipelineRequest) -> Any:
         """
         Extract data from the source system.
 

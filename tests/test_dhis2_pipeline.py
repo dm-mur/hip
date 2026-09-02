@@ -63,8 +63,10 @@ def test_dhis2_pipeline_orchestrates_extract_transform_validate_load():
     assert result == 2
 
     extractor.extract.assert_called_once_with(
-        endpoint="/api/dataValueSets",
-        params={"period": "202608"},
+        PipelineRequest(
+            endpoint="/api/dataValueSets",
+            params={"period": "202608"},
+        )
     )
 
     assert transformer.transform.call_count == 2

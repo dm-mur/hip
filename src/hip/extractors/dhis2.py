@@ -11,6 +11,7 @@ import requests
 
 from hip.config.settings import DHIS2Settings
 from hip.extractors.base import BaseExtractor
+from hip.pipelines.request import PipelineRequest
 
 
 class DHIS2Extractor(BaseExtractor):
@@ -21,8 +22,7 @@ class DHIS2Extractor(BaseExtractor):
 
     def extract(
         self,
-        endpoint: str,
-        params: dict[str, Any] | None = None,
+        request: PipelineRequest,
     ) -> dict[str, Any]:
         """
         Retrieve data from a DHIS2 endpoint.
@@ -41,11 +41,14 @@ class DHIS2Extractor(BaseExtractor):
             JSON response returned by DHIS2.
         """
 
-        url = f"{self.settings.base_url.rstrip('/')}/{endpoint.lstrip('/')}"
+        url = (
+            f"{self.settings.base_url.rstrip('/')}/"
+            f"{request.endpoint.lstrip('/')}"
+        )
 
         response = requests.get(
             url,
-            params=params,
+            params=request.params,
             auth=(self.settings.username, self.settings.password),
             timeout=60,
         )

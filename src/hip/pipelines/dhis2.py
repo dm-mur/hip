@@ -62,10 +62,7 @@ class DHIS2Pipeline(BasePipeline):
         raw_records = []
 
         try:
-            response = self.extractor.extract(
-                endpoint=request.endpoint,
-                params=request.params,
-            )
+            response = self.extractor.extract(request)
 
             raw_records = response.get("data", [])
             
