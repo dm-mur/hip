@@ -6,8 +6,15 @@ and contains the connection settings required to access it.
 """
 
 from dataclasses import dataclass
+from typing import Protocol
 
 from hip.config.settings import DHIS2Settings
+
+
+class SourceConfig(Protocol):
+    """Common contract for HIP source configurations."""
+
+    source_instance: str
 
 
 @dataclass(frozen=True)

@@ -8,7 +8,7 @@ from typing import Protocol
 
 from hip.audit.service import AuditService
 from hip.config.database import DatabaseSettings
-from hip.config.source import DHIS2SourceConfig
+from hip.config.source import DHIS2SourceConfig, SourceConfig
 from hip.extractors.dhis2 import DHIS2Extractor
 from hip.loaders.postgres import PostgresLoader
 from hip.pipelines.base import BasePipeline
@@ -24,7 +24,7 @@ class PipelineCreator(Protocol):
     def __call__(
         self,
         *,
-        source_config: DHIS2SourceConfig,
+        source_config: SourceConfig,
         database_settings: DatabaseSettings,
         pipeline_config: PipelineConfig,
     ) -> BasePipeline:
@@ -62,7 +62,7 @@ class PipelineFactory:
     def create(
         cls,
         pipeline_type: str,
-        source_config: DHIS2SourceConfig,
+        source_config: SourceConfig,
         database_settings: DatabaseSettings,
         pipeline_config: PipelineConfig,
     ) -> BasePipeline:
@@ -83,7 +83,7 @@ class PipelineFactory:
 
     @staticmethod
     def create_dhis2(
-        source_config: DHIS2SourceConfig,
+        source_config: SourceConfig,
         database_settings: DatabaseSettings,
         pipeline_config: PipelineConfig,
     ) -> DHIS2Pipeline:
@@ -93,7 +93,7 @@ class PipelineFactory:
         Parameters
         ----------
         source_config:
-            Configuration identifying the DHIS2 source instance.
+            Configuration identifying the source instance.
 
         database_settings:
             Configuration for the PostgreSQL destination.
@@ -106,6 +106,11 @@ class PipelineFactory:
         DHIS2Pipeline
             Fully wired DHIS2 pipeline.
         """
+
+        if not isinstance(source_config, DHIS2SourceConfig):
+            raise TypeError(
+                "DHIS2 pipeline requires DHIS2SourceConfig"
+            )
 
         extractor = DHIS2Extractor(
             settings=source_config.settings,

@@ -213,3 +213,32 @@ def test_factory_registry_creators_return_base_pipeline():
         )
 
         assert isinstance(pipeline, BasePipeline)
+
+
+def test_dhis2_factory_rejects_incompatible_source_config():
+    class OtherSourceConfig:
+        source_instance = "other_source"
+
+    database_settings = DatabaseSettings(
+        host="localhost",
+        port=5435,
+        database="hip",
+        username="postgres",
+        password="test_password",
+    )
+
+    pipeline_config = PipelineConfig(
+        environment="TEST",
+        initiated_by="pytest",
+        batch_name="Factory Test",
+    )
+
+    with pytest.raises(
+        TypeError,
+        match="DHIS2 pipeline requires DHIS2SourceConfig",
+    ):
+        PipelineFactory.create_dhis2(
+            source_config=OtherSourceConfig(),
+            database_settings=database_settings,
+            pipeline_config=pipeline_config,
+        )

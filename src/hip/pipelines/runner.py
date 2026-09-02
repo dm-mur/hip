@@ -6,7 +6,7 @@ without containing source-specific ETL logic.
 """
 
 from hip.config.database import DatabaseSettings
-from hip.config.source import DHIS2SourceConfig
+from hip.config.source import SourceConfig
 from hip.pipelines.config import PipelineConfig
 from hip.pipelines.factory import PipelineFactory
 from hip.pipelines.request import PipelineRequest
@@ -18,7 +18,7 @@ class PipelineRunner:
     @staticmethod
     def run(
         pipeline_type: str,
-        source_config: DHIS2SourceConfig,
+        source_config: SourceConfig,
         database_settings: DatabaseSettings,
         pipeline_config: PipelineConfig,
         request: PipelineRequest,
