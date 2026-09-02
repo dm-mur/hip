@@ -5,11 +5,6 @@ PostgreSQL database configuration for HIP.
 import os
 from dataclasses import dataclass
 
-from dotenv import load_dotenv
-
-
-load_dotenv("docker/.env")
-
 
 @dataclass(frozen=True)
 class DatabaseSettings:
