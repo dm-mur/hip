@@ -4,28 +4,44 @@ Factory for constructing HIP pipelines.
 The factory centralizes dependency wiring so application code
 does not need to manually construct every pipeline component.
 """
+from typing import Protocol
 
 from hip.audit.service import AuditService
 from hip.config.database import DatabaseSettings
 from hip.config.source import DHIS2SourceConfig
 from hip.extractors.dhis2 import DHIS2Extractor
 from hip.loaders.postgres import PostgresLoader
+from hip.pipelines.base import BasePipeline
 from hip.pipelines.config import PipelineConfig
 from hip.pipelines.dhis2 import DHIS2Pipeline
 from hip.transformers.dhis2 import DHIS2Transformer
 from hip.validators.dhis2 import DHIS2Validator
 
 
+class PipelineCreator(Protocol):
+    """Contract for functions that construct HIP pipelines."""
+
+    def __call__(
+        self,
+        *,
+        source_config: DHIS2SourceConfig,
+        database_settings: DatabaseSettings,
+        pipeline_config: PipelineConfig,
+    ) -> BasePipeline:
+        """Create a configured pipeline."""
+        ...
+
+
 class PipelineFactory:
     """Construct fully configured HIP pipelines."""
 
-    _registry: dict[str, object] = {}
+    _registry: dict[str, PipelineCreator] = {}
 
     @classmethod
     def register(
         cls,
         pipeline_type: str,
-        creator: object,
+        creator: PipelineCreator,
     ) -> None:
         """Register a pipeline creator."""
 
@@ -37,7 +53,7 @@ class PipelineFactory:
         cls._registry[pipeline_type] = creator
 
     @classmethod
-    def registry(cls) -> dict[str, object]:
+    def registry(cls) -> dict[str, PipelineCreator]:
         """Return a copy of the registered pipeline types."""
 
         return cls._registry.copy()
@@ -49,7 +65,7 @@ class PipelineFactory:
         source_config: DHIS2SourceConfig,
         database_settings: DatabaseSettings,
         pipeline_config: PipelineConfig,
-    ) -> DHIS2Pipeline:
+    ) -> BasePipeline:
         """Create a pipeline from the registered pipeline types."""
 
         if pipeline_type not in cls._registry:

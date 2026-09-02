@@ -13,6 +13,15 @@ from hip.transformers.dhis2 import DHIS2Transformer
 from hip.validators.dhis2 import DHIS2Validator
 
 
+class CustomPipeline(BasePipeline):
+    """Minimal concrete pipeline used for factory tests."""
+
+    pipeline_type = "custom"
+
+    def run(self, request):
+        return 1
+
+
 @pytest.fixture(autouse=True)
 def reset_pipeline_registry():
     original_registry = PipelineFactory._registry.copy()
@@ -110,8 +119,18 @@ def test_dhis2_pipeline_declares_pipeline_type():
 
 
 def test_factory_registers_custom_pipeline_creator():
-    def custom_creator(**kwargs):
-        return "custom-pipeline"
+    def custom_creator(
+        *,
+        source_config,
+        database_settings,
+        pipeline_config,
+    ):
+        return CustomPipeline(
+            extractor=None,
+            transformer=None,
+            validator=None,
+            loader=None,
+        )
 
     PipelineFactory.register(
         "custom",
@@ -123,8 +142,18 @@ def test_factory_registers_custom_pipeline_creator():
 
 
 def test_factory_creates_registered_custom_pipeline():
-    def custom_creator(**kwargs):
-        return "custom-pipeline"
+    def custom_creator(
+        *,
+        source_config,
+        database_settings,
+        pipeline_config,
+    ):
+        return CustomPipeline(
+            extractor=None,
+            transformer=None,
+            validator=None,
+            loader=None,
+        )
 
     PipelineFactory.register(
         "custom",
@@ -138,7 +167,8 @@ def test_factory_creates_registered_custom_pipeline():
         pipeline_config=None,
     )
 
-    assert result == "custom-pipeline"
+    assert isinstance(result, CustomPipeline)
+    assert isinstance(result, BasePipeline)
 
 
 def test_factory_registry_contains_callable_creators():
