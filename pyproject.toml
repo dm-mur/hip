@@ -16,6 +16,9 @@ dependencies = [
     "python-dotenv>=1.0,<2.0",
 ]
 
+[project.scripts]
+hip = "hip.cli.main:main"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0,<9.0",
