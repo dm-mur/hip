@@ -4,7 +4,7 @@ Factory for constructing HIP pipelines.
 The factory centralizes dependency wiring so application code
 does not need to manually construct every pipeline component.
 """
-from typing import Protocol
+from typing import ClassVar, Protocol
 
 from hip.audit.service import AuditService
 from hip.config.database import DatabaseSettings
@@ -35,7 +35,7 @@ class PipelineCreator(Protocol):
 class PipelineFactory:
     """Construct fully configured HIP pipelines."""
 
-    _registry: dict[str, PipelineCreator] = {}
+    _registry: ClassVar[dict[str, PipelineCreator]] = {}
 
     @classmethod
     def register(

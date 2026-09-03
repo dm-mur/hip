@@ -1,7 +1,7 @@
-from hip.pipelines.config import PipelineConfig
-from hip.audit.service import AuditService
 from unittest.mock import Mock
 
+from hip.audit.service import AuditService
+from hip.pipelines.config import PipelineConfig
 from hip.pipelines.dhis2 import DHIS2Pipeline
 from hip.pipelines.request import PipelineRequest
 

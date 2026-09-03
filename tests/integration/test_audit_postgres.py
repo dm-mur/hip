@@ -24,10 +24,9 @@ def test_audit_service_writes_real_postgres_batch():
         dbname=settings.database,
         user=settings.username,
         password=settings.password,
-    ) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
+    ) as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
                 SELECT
                     status,
                     source_system,
@@ -37,10 +36,10 @@ def test_audit_service_writes_real_postgres_batch():
                 FROM audit.etl_batch
                 WHERE batch_id = %s
                 """,
-                (batch_id,),
-            )
+            (batch_id,),
+        )
 
-            row = cursor.fetchone()
+        row = cursor.fetchone()
 
     assert row is not None
 
@@ -67,10 +66,9 @@ def test_audit_service_writes_real_postgres_batch():
         dbname=settings.database,
         user=settings.username,
         password=settings.password,
-    ) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
+    ) as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
                 SELECT
                     status,
                     total_rows,
@@ -81,10 +79,10 @@ def test_audit_service_writes_real_postgres_batch():
                 FROM audit.etl_batch
                 WHERE batch_id = %s
                 """,
-                (batch_id,),
-            )
+            (batch_id,),
+        )
 
-            row = cursor.fetchone()
+        row = cursor.fetchone()
 
     assert row is not None
 
@@ -130,10 +128,9 @@ def test_audit_service_marks_real_postgres_batch_failed():
         dbname=settings.database,
         user=settings.username,
         password=settings.password,
-    ) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
+    ) as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
                 SELECT
                     status,
                     total_rows,
@@ -145,10 +142,10 @@ def test_audit_service_marks_real_postgres_batch_failed():
                 FROM audit.etl_batch
                 WHERE batch_id = %s
                 """,
-                (batch_id,),
-            )
+            (batch_id,),
+        )
 
-            row = cursor.fetchone()
+        row = cursor.fetchone()
 
     assert row is not None
 

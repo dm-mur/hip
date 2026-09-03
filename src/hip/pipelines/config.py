@@ -6,6 +6,7 @@ while PipelineContext identifies a specific execution.
 """
 
 from dataclasses import dataclass
+from typing import ClassVar
 
 
 @dataclass(frozen=True)
@@ -16,7 +17,7 @@ class PipelineConfig:
     initiated_by: str
     batch_name: str
 
-    VALID_ENVIRONMENTS = {
+    VALID_ENVIRONMENTS: ClassVar[set[str]] = {
         "DEV",
         "TEST",
         "UAT",

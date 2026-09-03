@@ -6,12 +6,11 @@ from hip.audit.service import AuditService
 from hip.config.database import DatabaseSettings
 from hip.extractors.dhis2 import DHIS2Extractor
 from hip.loaders.postgres import PostgresLoader
+from hip.pipelines.config import PipelineConfig
 from hip.pipelines.dhis2 import DHIS2Pipeline
 from hip.pipelines.request import PipelineRequest
 from hip.transformers.dhis2 import DHIS2Transformer
 from hip.validators.dhis2 import DHIS2Validator
-from hip.pipelines.config import PipelineConfig
-
 
 TEST_RECORD_HASH = None
 
@@ -104,15 +103,14 @@ def test_dhis2_pipeline_writes_to_real_postgres():
         dbname=settings.database,
         user=settings.username,
         password=settings.password,
-    ) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
+    ) as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
                 DELETE FROM bronze.dhis2_data
                 WHERE record_hash = %s
                 """,
-                (record_hash,),
-            )
+            (record_hash,),
+        )
 
     # ------------------------------------------------------------------
     # 5. Run the actual pipeline.
@@ -138,10 +136,9 @@ def test_dhis2_pipeline_writes_to_real_postgres():
         dbname=settings.database,
         user=settings.username,
         password=settings.password,
-    ) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
+    ) as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
                 SELECT
                     source_instance,
                     data_element,
@@ -152,10 +149,10 @@ def test_dhis2_pipeline_writes_to_real_postgres():
                 FROM bronze.dhis2_data
                 WHERE record_hash = %s
                 """,
-                (record_hash,),
-            )
+            (record_hash,),
+        )
 
-            bronze_row = cursor.fetchone()
+        bronze_row = cursor.fetchone()
 
     assert bronze_row is not None
 
@@ -185,10 +182,9 @@ def test_dhis2_pipeline_writes_to_real_postgres():
         dbname=settings.database,
         user=settings.username,
         password=settings.password,
-    ) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
+    ) as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
                 SELECT
                     status,
                     total_rows,
@@ -199,10 +195,10 @@ def test_dhis2_pipeline_writes_to_real_postgres():
                 FROM audit.etl_batch
                 WHERE batch_id = %s
                 """,
-                (batch_id,),
-            )
+            (batch_id,),
+        )
 
-            audit_row = cursor.fetchone()
+        audit_row = cursor.fetchone()
 
     assert audit_row is not None
 

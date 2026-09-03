@@ -5,7 +5,6 @@ Coordinates extraction, transformation, validation,
 and loading of DHIS2 records.
 """
 
-from typing import Any
 
 from hip.audit.service import AuditService
 from hip.extractors.base import BaseExtractor
@@ -16,6 +15,7 @@ from hip.pipelines.context import PipelineContext
 from hip.pipelines.request import PipelineRequest
 from hip.transformers.base import BaseTransformer
 from hip.validators.base import BaseValidator
+
 
 class DHIS2Pipeline(BasePipeline):
     """Pipeline for processing DHIS2 data."""

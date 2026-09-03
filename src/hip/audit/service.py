@@ -37,10 +37,9 @@ class AuditService:
 
         batch_id = str(uuid4())
 
-        with self._connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    """
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                """
                     INSERT INTO audit.etl_batch (
                         batch_id,
                         source_system,
@@ -62,14 +61,14 @@ class AuditService:
                         %s
                     )
                     """,
-                    (
-                        batch_id,
-                        source_system,
-                        batch_name,
-                        environment,
-                        initiated_by,
-                    ),
-                )
+                (
+                    batch_id,
+                    source_system,
+                    batch_name,
+                    environment,
+                    initiated_by,
+                ),
+            )
 
         return batch_id
 
@@ -82,10 +81,9 @@ class AuditService:
     ) -> None:
         """Mark an ETL batch as successfully completed."""
 
-        with self._connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    """
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                """
                     UPDATE audit.etl_batch
                     SET
                         status = 'SUCCESS',
@@ -100,13 +98,13 @@ class AuditService:
                         )::INTEGER
                     WHERE batch_id = %s
                     """,
-                    (
-                        total_rows,
-                        successful_rows,
-                        failed_rows,
-                        batch_id,
-                    ),
-                )
+                (
+                    total_rows,
+                    successful_rows,
+                    failed_rows,
+                    batch_id,
+                ),
+            )
 
     def fail_batch(
         self,
@@ -118,10 +116,9 @@ class AuditService:
     ) -> None:
         """Mark an ETL batch as failed."""
 
-        with self._connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    """
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                """
                     UPDATE audit.etl_batch
                     SET
                         status = 'FAILED',
@@ -137,11 +134,11 @@ class AuditService:
                         )::INTEGER
                     WHERE batch_id = %s
                     """,
-                    (
-                        total_rows,
-                        successful_rows,
-                        failed_rows,
-                        remarks,
-                        batch_id,
-                    ),
-                )
+                (
+                    total_rows,
+                    successful_rows,
+                    failed_rows,
+                    remarks,
+                    batch_id,
+                ),
+            )

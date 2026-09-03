@@ -4,7 +4,6 @@ from hip.config.database import DatabaseSettings
 from hip.loaders.postgres import PostgresLoader
 from hip.models.dhis2 import DHIS2Record
 
-
 TEST_RECORD_HASH = "integration-test-record-001"
 
 
@@ -45,15 +44,14 @@ def test_postgres_loader_is_idempotent():
     record = make_record()
 
     # Remove only this test record so the test starts clean.
-    with loader._connection() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
+    with loader._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
                 DELETE FROM bronze.dhis2_data
                 WHERE record_hash = %s
                 """,
-                (TEST_RECORD_HASH,),
-            )
+            (TEST_RECORD_HASH,),
+        )
 
     # First load should insert the record.
     first_result = loader.load([record])
@@ -66,31 +64,29 @@ def test_postgres_loader_is_idempotent():
     assert second_result == 0
 
     # Confirm that exactly one copy exists.
-    with loader._connection() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
+    with loader._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
                 SELECT COUNT(*)
                 FROM bronze.dhis2_data
                 WHERE record_hash = %s
                 """,
-                (TEST_RECORD_HASH,),
-            )
+            (TEST_RECORD_HASH,),
+        )
 
-            count = cursor.fetchone()[0]
+        count = cursor.fetchone()[0]
 
     assert count == 1
 
     # Clean up the test record.
-    with loader._connection() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
+    with loader._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
                 DELETE FROM bronze.dhis2_data
                 WHERE record_hash = %s
                 """,
-                (TEST_RECORD_HASH,),
-            )
+            (TEST_RECORD_HASH,),
+        )
 
 def test_postgres_loader_allows_same_hash_for_different_instances():
     settings = DatabaseSettings.from_environment()
@@ -104,15 +100,14 @@ def test_postgres_loader_allows_same_hash_for_different_instances():
     )
 
     # Remove both possible test records so the test starts clean.
-    with loader._connection() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
+    with loader._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
                 DELETE FROM bronze.dhis2_data
                 WHERE record_hash = %s
                 """,
-                (TEST_RECORD_HASH,),
-            )
+            (TEST_RECORD_HASH,),
+        )
 
     first_result = loader.load([record_1])
     second_result = loader.load([record_2])
@@ -120,28 +115,26 @@ def test_postgres_loader_allows_same_hash_for_different_instances():
     assert first_result == 1
     assert second_result == 1
 
-    with loader._connection() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
+    with loader._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
                 SELECT COUNT(*)
                 FROM bronze.dhis2_data
                 WHERE record_hash = %s
                 """,
-                (TEST_RECORD_HASH,),
-            )
+            (TEST_RECORD_HASH,),
+        )
 
-            count = cursor.fetchone()[0]
+        count = cursor.fetchone()[0]
 
     assert count == 2
 
     # Clean up both test records.
-    with loader._connection() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
+    with loader._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
                 DELETE FROM bronze.dhis2_data
                 WHERE record_hash = %s
                 """,
-                (TEST_RECORD_HASH,),
-            )
+            (TEST_RECORD_HASH,),
+        )

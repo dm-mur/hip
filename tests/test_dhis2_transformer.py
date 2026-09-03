@@ -3,7 +3,6 @@ from hip.transformers.base import BaseTransformer
 from hip.transformers.dhis2 import DHIS2Transformer
 
 
-
 def test_dhis2_transformer_creates_canonical_record():
     transformer = DHIS2Transformer(
         source_instance="kenya_demo",

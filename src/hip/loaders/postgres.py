@@ -44,29 +44,28 @@ class PostgresLoader(BaseLoader):
 
         inserted = 0
 
-        with self._connection() as connection:
-            with connection.cursor() as cursor:
+        with self._connection() as connection, connection.cursor() as cursor:
 
-                for record in records:
-                    cursor.execute(
-                        """
+            for record in records:
+                cursor.execute(
+                    """
                         SELECT 1
                         FROM bronze.dhis2_data
                         WHERE source_instance = %s
                         AND record_hash = %s
                         LIMIT 1
                         """,
-                        (
-                            record.source_instance,
-                            record.record_hash,
-                        ),
-                    )
+                    (
+                        record.source_instance,
+                        record.record_hash,
+                    ),
+                )
 
-                    if cursor.fetchone() is not None:
-                        continue
+                if cursor.fetchone() is not None:
+                    continue
 
-                    cursor.execute(
-                        """
+                cursor.execute(
+                    """
                         INSERT INTO bronze.dhis2_data (
                             batch_id,
                             source_system,
@@ -98,31 +97,31 @@ class PostgresLoader(BaseLoader):
                             %s
                         )
                         """,
-                        (
-                            record.batch_id,
-                            "DHIS2",
-                            record.source_instance,
-                            record.dataset_id,
-                            record.data_element,
-                            record.data_element_name,
-                            record.org_unit,
-                            record.org_unit_name,
-                            record.period,
-                            record.category_option_combo,
-                            record.category_option_combo_name,
-                            record.attribute_option_combo,
-                            record.attribute_option_combo_name,
-                            record.value,
-                            record.comment,
-                            record.followup,
-                            record.stored_by,
-                            record.created_at_source,
-                            record.last_updated_at_source,
-                            Jsonb(record.raw_payload),
-                            record.record_hash,
-                        ),
-                    )
+                    (
+                        record.batch_id,
+                        "DHIS2",
+                        record.source_instance,
+                        record.dataset_id,
+                        record.data_element,
+                        record.data_element_name,
+                        record.org_unit,
+                        record.org_unit_name,
+                        record.period,
+                        record.category_option_combo,
+                        record.category_option_combo_name,
+                        record.attribute_option_combo,
+                        record.attribute_option_combo_name,
+                        record.value,
+                        record.comment,
+                        record.followup,
+                        record.stored_by,
+                        record.created_at_source,
+                        record.last_updated_at_source,
+                        Jsonb(record.raw_payload),
+                        record.record_hash,
+                    ),
+                )
 
-                    inserted += 1
+                inserted += 1
 
         return inserted
