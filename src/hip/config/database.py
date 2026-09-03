@@ -20,10 +20,28 @@ class DatabaseSettings:
     def from_environment(cls) -> "DatabaseSettings":
         """Load database configuration from environment variables."""
 
+        host = os.getenv("POSTGRES_HOST", "localhost")
+        port = os.getenv("POSTGRES_PORT", "5435")
+        database = os.getenv("POSTGRES_DB", "hip")
+        username = os.getenv("POSTGRES_USER", "postgres")
+        password = os.getenv("POSTGRES_PASSWORD")
+
+        if not password:
+            raise ValueError(
+                "Missing required PostgreSQL configuration: POSTGRES_PASSWORD"
+            )
+
+        try:
+            port_number = int(port)
+        except ValueError as exc:
+            raise ValueError(
+                f"Invalid POSTGRES_PORT: {port}. Expected an integer."
+            ) from exc
+
         return cls(
-            host=os.getenv("POSTGRES_HOST", "localhost"),
-            port=int(os.getenv("POSTGRES_PORT", "5435")),
-            database=os.getenv("POSTGRES_DB", "hip"),
-            username=os.getenv("POSTGRES_USER", "postgres"),
-            password=os.getenv("POSTGRES_PASSWORD", ""),
+            host=host,
+            port=port_number,
+            database=database,
+            username=username,
+            password=password,
         )
