@@ -1,6 +1,7 @@
 import argparse
+import sys
 
-from hip.cli.main import build_parser, run_pipeline
+from hip.cli.main import build_parser, main, run_pipeline
 
 
 def test_build_parser_parses_run_command():
@@ -167,3 +168,44 @@ def test_run_pipeline_rejects_invalid_param(monkeypatch):
         )
     else:
         raise AssertionError("Expected ValueError")
+
+
+def test_main_reports_configuration_error_without_traceback(
+    monkeypatch,
+    capsys,
+):
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "hip",
+            "run",
+            "dhis2",
+            "--source-instance",
+            "test_dhis2",
+            "--endpoint",
+            "/api/dataValueSets",
+            "--environment",
+            "TEST",
+            "--initiated-by",
+            "pytest",
+            "--batch-name",
+            "CLI Test",
+        ],
+    )
+
+    monkeypatch.delenv("DHIS2_BASE_URL", raising=False)
+    monkeypatch.delenv("DHIS2_USERNAME", raising=False)
+    monkeypatch.delenv("DHIS2_PASSWORD", raising=False)
+
+    try:
+        main()
+    except SystemExit as exc:
+        assert exc.code == 2
+    else:
+        raise AssertionError("Expected SystemExit")
+
+    captured = capsys.readouterr()
+
+    assert "Missing required DHIS2 configuration" in captured.err
+    assert "Traceback" not in captured.err

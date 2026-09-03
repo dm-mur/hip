@@ -166,7 +166,11 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.command == "run":
-        loaded_count = run_pipeline(args)
+        try:
+            loaded_count = run_pipeline(args)
+        except ValueError as exc:
+            parser.error(str(exc))
+
         print(f"Loaded {loaded_count} records")
         return 0
 
