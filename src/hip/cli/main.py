@@ -76,7 +76,44 @@ def build_parser() -> argparse.ArgumentParser:
         help="Reporting period passed to the source request",
     )
 
+    run_parser.add_argument(
+        "--param",
+        action="append",
+        help="Request parameter in KEY=VALUE format; may be repeated",
+    )
+
     return parser
+
+
+def parse_request_params(
+    period: str | None,
+    parameters: list[str] | None,
+) -> dict[str, str] | None:
+    """Build request parameters from CLI arguments."""
+
+    params = {}
+
+    if period:
+        params["period"] = period
+
+    for parameter in parameters or []:
+        if "=" not in parameter:
+            raise ValueError(
+                f"Invalid request parameter: {parameter}. "
+                "Expected KEY=VALUE."
+            )
+
+        key, value = parameter.split("=", 1)
+
+        if not key.strip():
+            raise ValueError(
+                f"Invalid request parameter: {parameter}. "
+                "Expected KEY=VALUE."
+            )
+
+        params[key] = value
+
+    return params or None
 
 
 def run_pipeline(args: argparse.Namespace) -> int:
@@ -100,12 +137,11 @@ def run_pipeline(args: argparse.Namespace) -> int:
         batch_name=args.batch_name,
     )
 
-    params = None
 
-    if args.period:
-        params = {
-            "period": args.period,
-        }
+    params = parse_request_params(
+        period=args.period,
+        parameters=args.param,
+    )
 
     request = PipelineRequest(
         endpoint=args.endpoint,

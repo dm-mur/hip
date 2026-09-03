@@ -22,6 +22,10 @@ def test_build_parser_parses_run_command():
             "CLI Test",
             "--period",
             "202608",
+            "--param",
+            "dataSet=abc123",
+            "--param",
+            "orgUnit=xyz789",
         ]
     )
 
@@ -33,6 +37,10 @@ def test_build_parser_parses_run_command():
     assert args.initiated_by == "pytest"
     assert args.batch_name == "CLI Test"
     assert args.period == "202608"
+    assert args.param == [
+        "dataSet=abc123",
+        "orgUnit=xyz789",
+    ]
 
 
 def test_run_pipeline_delegates_to_pipeline_runner(monkeypatch):
@@ -45,6 +53,10 @@ def test_run_pipeline_delegates_to_pipeline_runner(monkeypatch):
         initiated_by="pytest",
         batch_name="CLI Test",
         period="202608",
+        param=[
+            "dataSet=abc123",
+            "orgUnit=xyz789",
+        ],
     )
 
     monkeypatch.setenv(
@@ -57,6 +69,10 @@ def test_run_pipeline_delegates_to_pipeline_runner(monkeypatch):
     )
     monkeypatch.setenv(
         "DHIS2_PASSWORD",
+        "test-password",
+    )
+    monkeypatch.setenv(
+        "POSTGRES_PASSWORD",
         "test-password",
     )
 
@@ -98,6 +114,8 @@ def test_run_pipeline_delegates_to_pipeline_runner(monkeypatch):
     assert captured["request"].endpoint == "/api/dataValueSets"
     assert captured["request"].params == {
         "period": "202608",
+        "dataSet": "abc123",
+        "orgUnit": "xyz789",
     }
 
 
@@ -111,11 +129,41 @@ def test_run_pipeline_rejects_unsupported_pipeline_type():
         initiated_by="pytest",
         batch_name="CLI Test",
         period=None,
+        param=None,
     )
 
     try:
         run_pipeline(args)
     except ValueError as exc:
         assert str(exc) == "Unsupported CLI pipeline type: csv"
+    else:
+        raise AssertionError("Expected ValueError")
+
+
+def test_run_pipeline_rejects_invalid_param(monkeypatch):
+    args = argparse.Namespace(
+        command="run",
+        pipeline_type="dhis2",
+        source_instance="test_dhis2",
+        endpoint="/api/dataValueSets",
+        environment="TEST",
+        initiated_by="pytest",
+        batch_name="CLI Test",
+        period=None,
+        param=["invalid-param"],
+    )
+
+    monkeypatch.setenv("DHIS2_BASE_URL", "https://example.org")
+    monkeypatch.setenv("DHIS2_USERNAME", "test-user")
+    monkeypatch.setenv("DHIS2_PASSWORD", "test-password")
+    monkeypatch.setenv("POSTGRES_PASSWORD", "test-password")
+
+    try:
+        run_pipeline(args)
+    except ValueError as exc:
+        assert str(exc) == (
+            "Invalid request parameter: invalid-param. "
+            "Expected KEY=VALUE."
+        )
     else:
         raise AssertionError("Expected ValueError")
