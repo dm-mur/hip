@@ -25,26 +25,24 @@ def test_dhis2_pipeline_writes_to_real_postgres():
     extractor = Mock(spec=DHIS2Extractor)
 
     extractor.extract.return_value = {
-        "data": [
+        "dataSet": "INTEGRATION_DATASET",
+        "period": "202608",
+        "orgUnit": "INTEGRATION_ORG",
+        "dataValues": [
             {
-                "dataset_id": "INTEGRATION_DATASET",
-                "data_element": "INTEGRATION_ELEMENT",
-                "data_element_name": "Integration Element",
-                "org_unit": "INTEGRATION_ORG",
-                "org_unit_name": "Integration Organisation",
+                "dataElement": "INTEGRATION_ELEMENT",
+                "orgUnit": "INTEGRATION_ORG",
                 "period": "202608",
-                "category_option_combo": None,
-                "category_option_combo_name": None,
-                "attribute_option_combo": None,
-                "attribute_option_combo_name": None,
+                "categoryOptionCombo": "DEFAULT",
+                "attributeOptionCombo": "DEFAULT",
                 "value": "999",
                 "comment": None,
-                "followup": None,
-                "stored_by": "pytest",
-                "created_at_source": None,
-                "last_updated_at_source": None,
+                "followup": False,
+                "storedBy": "pytest",
+                "created": "2026-08-31T10:00:00.000",
+                "lastUpdated": "2026-08-31T10:00:00.000",
             }
-        ]
+        ],
     }
 
     # ------------------------------------------------------------------
@@ -91,7 +89,10 @@ def test_dhis2_pipeline_writes_to_real_postgres():
     # 4. Remove the test record if it already exists.
     # ------------------------------------------------------------------
 
-    raw_test_record = extractor.extract.return_value["data"][0]
+    raw_test_record = {
+        **extractor.extract.return_value["dataValues"][0],
+        "dataSet": extractor.extract.return_value["dataSet"],
+    }
 
     record_hash = transformer._generate_record_hash(
         raw_test_record
@@ -106,9 +107,9 @@ def test_dhis2_pipeline_writes_to_real_postgres():
     ) as connection, connection.cursor() as cursor:
         cursor.execute(
             """
-                DELETE FROM bronze.dhis2_data
-                WHERE record_hash = %s
-                """,
+            DELETE FROM bronze.dhis2_data
+            WHERE record_hash = %s
+            """,
             (record_hash,),
         )
 
@@ -139,16 +140,22 @@ def test_dhis2_pipeline_writes_to_real_postgres():
     ) as connection, connection.cursor() as cursor:
         cursor.execute(
             """
-                SELECT
-                    source_instance,
-                    data_element,
-                    org_unit,
-                    period,
-                    value,
-                    record_hash
-                FROM bronze.dhis2_data
-                WHERE record_hash = %s
-                """,
+            SELECT
+                source_instance,
+                dataset_id,
+                data_element,
+                org_unit,
+                period,
+                category_option_combo,
+                attribute_option_combo,
+                value,
+                stored_by,
+                created_at_source,
+                last_updated_at_source,
+                record_hash
+            FROM bronze.dhis2_data
+            WHERE record_hash = %s
+            """,
             (record_hash,),
         )
 
@@ -158,19 +165,31 @@ def test_dhis2_pipeline_writes_to_real_postgres():
 
     (
         source_instance,
+        dataset_id,
         data_element,
         org_unit,
         period,
+        category_option_combo,
+        attribute_option_combo,
         value,
+        stored_by,
+        created_at_source,
+        last_updated_at_source,
         record_hash,
     ) = bronze_row
 
     assert source_instance == "integration_test"
+    assert dataset_id == "INTEGRATION_DATASET"
     assert data_element == "INTEGRATION_ELEMENT"
     assert org_unit == "INTEGRATION_ORG"
     assert period == "202608"
+    assert category_option_combo == "DEFAULT"
+    assert attribute_option_combo == "DEFAULT"
     assert value == "999"
-    assert record_hash == bronze_row[5]
+    assert stored_by == "pytest"
+    assert created_at_source is not None
+    assert last_updated_at_source is not None
+    assert record_hash == bronze_row[11]
 
     # ------------------------------------------------------------------
     # 7. Verify the audit record.

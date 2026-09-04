@@ -64,16 +64,22 @@ class DHIS2Pipeline(BasePipeline):
         try:
             response = self.extractor.extract(request)
 
-            raw_records = response.get("data", [])
+            raw_records = response.get("dataValues", [])
+            dataset_id = response.get("dataSet")
             
             valid_records = []
             failed_rows = 0
 
             for raw_record in raw_records:
+                enriched_record = {
+                    **raw_record,
+                    "dataSet": dataset_id,
+                }
+
                 transformed_record = self.transformer.transform(
-                    raw_record,
+                    enriched_record,
                     context=context,
-                    )
+                )
 
                 if self.validator.validate(transformed_record):
                     valid_records.append(transformed_record)

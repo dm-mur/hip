@@ -13,10 +13,11 @@ def test_dhis2_pipeline_orchestrates_extract_transform_validate_load():
     loader = Mock()
 
     extractor.extract.return_value = {
-        "data": [
+        "dataSet": "TEST_DATASET",
+        "dataValues": [
             {"id": "record-001"},
             {"id": "record-002"},
-        ]
+        ],
     }
 
     transformed_1 = Mock()
@@ -70,6 +71,17 @@ def test_dhis2_pipeline_orchestrates_extract_transform_validate_load():
     )
 
     assert transformer.transform.call_count == 2
+    first_record = transformer.transform.call_args_list[0].args[0]
+    second_record = transformer.transform.call_args_list[1].args[0]
+
+    assert first_record == {
+        "id": "record-001",
+        "dataSet": "TEST_DATASET",
+    }
+    assert second_record == {
+        "id": "record-002",
+        "dataSet": "TEST_DATASET",
+    }
     assert validator.validate.call_count == 2
 
     loader.load.assert_called_once_with(
@@ -90,10 +102,11 @@ def test_dhis2_pipeline_does_not_load_invalid_records():
     loader = Mock()
 
     extractor.extract.return_value = {
-        "data": [
+        "dataSet": "TEST_DATASET",
+        "dataValues": [
             {"id": "record-001"},
             {"id": "record-002"},
-        ]
+        ],
     }
 
     transformed_1 = Mock()
@@ -212,9 +225,10 @@ def test_dhis2_pipeline_marks_batch_failed_when_transformation_fails():
     audit.start_batch.return_value = "batch-001"
 
     extractor.extract.return_value = {
-        "data": [
+        "dataSet": "TEST_DATASET",
+        "dataValues": [
             {"id": "record-001"},
-        ]
+        ],
     }
 
     transformer.transform.side_effect = RuntimeError(
@@ -265,9 +279,10 @@ def test_dhis2_pipeline_marks_batch_failed_when_loading_fails():
     audit.start_batch.return_value = "batch-001"
 
     extractor.extract.return_value = {
-        "data": [
+        "dataSet": "TEST_DATASET",
+        "dataValues": [
             {"id": "record-001"},
-        ]
+        ],
     }
 
     transformed_record = Mock()

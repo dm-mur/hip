@@ -198,6 +198,11 @@ def test_main_reports_configuration_error_without_traceback(
     monkeypatch.delenv("DHIS2_USERNAME", raising=False)
     monkeypatch.delenv("DHIS2_PASSWORD", raising=False)
 
+    monkeypatch.setattr(
+        "hip.cli.main.load_dotenv",
+        lambda: None,
+    )
+
     try:
         main()
     except SystemExit as exc:
