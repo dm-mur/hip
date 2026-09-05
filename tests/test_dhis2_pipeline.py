@@ -97,6 +97,7 @@ def test_dhis2_pipeline_orchestrates_extract_transform_validate_load():
         total_rows=2,
         successful_rows=2,
         failed_rows=0,
+        duplicate_rows=0,
    )
 
 def test_dhis2_pipeline_does_not_load_invalid_records():
@@ -165,6 +166,7 @@ def test_dhis2_pipeline_does_not_load_invalid_records():
         total_rows=2,
         successful_rows=1,
         failed_rows=1,
+        duplicate_rows=0,
     )
     
 def test_dhis2_pipeline_marks_batch_failed_when_extraction_fails():
@@ -215,6 +217,7 @@ def test_dhis2_pipeline_marks_batch_failed_when_extraction_fails():
         total_rows=0,
         successful_rows=0,
         failed_rows=0,
+        duplicate_rows=0,
         remarks="DHIS2 API unavailable",
     )
 
@@ -270,6 +273,7 @@ def test_dhis2_pipeline_marks_batch_failed_when_transformation_fails():
         total_rows=1,
         successful_rows=0,
         failed_rows=1,
+        duplicate_rows=0,
         remarks="Invalid DHIS2 record structure",
     )
 
@@ -329,6 +333,7 @@ def test_dhis2_pipeline_marks_batch_failed_when_loading_fails():
         total_rows=1,
         successful_rows=0,
         failed_rows=1,
+        duplicate_rows=0,
         remarks="PostgreSQL connection failed",
     )
     
@@ -398,4 +403,5 @@ def test_dhis2_pipeline_treats_duplicates_as_successfully_processed():
         total_rows=1,
         successful_rows=1,
         failed_rows=0,
+        duplicate_rows=1,
     )

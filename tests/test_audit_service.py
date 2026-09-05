@@ -72,6 +72,7 @@ def test_audit_service_completes_batch():
             total_rows=10,
             successful_rows=8,
             failed_rows=2,
+            duplicate_rows=0,
         )
 
     cursor.execute.assert_called_once()
@@ -81,6 +82,7 @@ def test_audit_service_completes_batch():
     assert "SUCCESS" in query
     assert "successful_rows" in query
     assert "failed_rows" in query
+    assert "duplicate_rows" in query
     assert "duration_seconds" in query
 
 
@@ -99,6 +101,7 @@ def test_audit_service_fails_batch():
             total_rows=10,
             successful_rows=7,
             failed_rows=3,
+            duplicate_rows=0,
             remarks="Three records failed validation",
         )
 
@@ -109,5 +112,6 @@ def test_audit_service_fails_batch():
     assert "FAILED" in query
     assert "successful_rows" in query
     assert "failed_rows" in query
+    assert "duplicate_rows" in query
     assert "remarks" in query
     assert "duration_seconds" in query

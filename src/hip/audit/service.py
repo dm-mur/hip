@@ -78,6 +78,7 @@ class AuditService:
         total_rows: int,
         successful_rows: int,
         failed_rows: int,
+        duplicate_rows: int,
     ) -> None:
         """Mark an ETL batch as successfully completed."""
 
@@ -90,6 +91,7 @@ class AuditService:
                         total_rows = %s,
                         successful_rows = %s,
                         failed_rows = %s,
+                        duplicate_rows = %s,
                         completed_at = CURRENT_TIMESTAMP,
                         duration_seconds = EXTRACT(
                             EPOCH FROM (
@@ -102,6 +104,7 @@ class AuditService:
                     total_rows,
                     successful_rows,
                     failed_rows,
+                    duplicate_rows,
                     batch_id,
                 ),
             )
@@ -112,6 +115,7 @@ class AuditService:
         total_rows: int,
         successful_rows: int,
         failed_rows: int,
+        duplicate_rows: int,
         remarks: str,
     ) -> None:
         """Mark an ETL batch as failed."""
@@ -125,6 +129,7 @@ class AuditService:
                         total_rows = %s,
                         successful_rows = %s,
                         failed_rows = %s,
+                        duplicate_rows = %s,
                         remarks = %s,
                         completed_at = CURRENT_TIMESTAMP,
                         duration_seconds = EXTRACT(
@@ -138,6 +143,7 @@ class AuditService:
                     total_rows,
                     successful_rows,
                     failed_rows,
+                    duplicate_rows,
                     remarks,
                     batch_id,
                 ),

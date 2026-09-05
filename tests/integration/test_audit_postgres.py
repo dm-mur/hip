@@ -57,6 +57,7 @@ def test_audit_service_writes_real_postgres_batch():
         total_rows=10,
         successful_rows=8,
         failed_rows=2,
+        duplicate_rows=0,
     )
 
     # Verify the final database state.
@@ -74,6 +75,7 @@ def test_audit_service_writes_real_postgres_batch():
                     total_rows,
                     successful_rows,
                     failed_rows,
+                    duplicate_rows,
                     completed_at,
                     duration_seconds
                 FROM audit.etl_batch
@@ -91,6 +93,7 @@ def test_audit_service_writes_real_postgres_batch():
         total_rows,
         successful_rows,
         failed_rows,
+        duplicate_rows,
         completed_at,
         duration_seconds,
     ) = row
@@ -99,6 +102,7 @@ def test_audit_service_writes_real_postgres_batch():
     assert total_rows == 10
     assert successful_rows == 8
     assert failed_rows == 2
+    assert duplicate_rows == 0
     assert completed_at is not None
     assert duration_seconds is not None
     assert duration_seconds >= 0
@@ -119,6 +123,7 @@ def test_audit_service_marks_real_postgres_batch_failed():
         total_rows=10,
         successful_rows=7,
         failed_rows=3,
+        duplicate_rows=0,
         remarks="Three records failed validation",
     )
 
@@ -136,6 +141,7 @@ def test_audit_service_marks_real_postgres_batch_failed():
                     total_rows,
                     successful_rows,
                     failed_rows,
+                    duplicate_rows,
                     remarks,
                     completed_at,
                     duration_seconds
@@ -154,6 +160,7 @@ def test_audit_service_marks_real_postgres_batch_failed():
         total_rows,
         successful_rows,
         failed_rows,
+        duplicate_rows,
         remarks,
         completed_at,
         duration_seconds,
@@ -163,6 +170,7 @@ def test_audit_service_marks_real_postgres_batch_failed():
     assert total_rows == 10
     assert successful_rows == 7
     assert failed_rows == 3
+    assert duplicate_rows == 0
     assert remarks == "Three records failed validation"
     assert completed_at is not None
     assert duration_seconds is not None

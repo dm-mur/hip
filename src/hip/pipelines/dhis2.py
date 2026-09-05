@@ -93,6 +93,7 @@ class DHIS2Pipeline(BasePipeline):
                     total_rows=len(raw_records),
                     successful_rows=0,
                     failed_rows=failed_rows,
+                    duplicate_rows=0,
                 )
                 return 0
 
@@ -106,6 +107,7 @@ class DHIS2Pipeline(BasePipeline):
                     + load_result.duplicate_rows
                 ),
                 failed_rows=failed_rows,
+                duplicate_rows=load_result.duplicate_rows,
             )
 
             return load_result.inserted_rows
@@ -116,6 +118,7 @@ class DHIS2Pipeline(BasePipeline):
                 total_rows=len(raw_records),
                 successful_rows=0,
                 failed_rows=len(raw_records),
+                duplicate_rows=0,
                 remarks=str(exc),
             )
 
