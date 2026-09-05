@@ -7,6 +7,7 @@ from psycopg.types.json import Jsonb
 
 from hip.config.database import DatabaseSettings
 from hip.loaders.base import BaseLoader
+from hip.loaders.result import LoadResult
 from hip.models.dhis2 import DHIS2Record
 
 
@@ -27,7 +28,7 @@ class PostgresLoader(BaseLoader):
             password=self.settings.password,
         )
 
-    def load(self, records: list[DHIS2Record]) -> int:
+    def load(self, records: list[DHIS2Record]) -> LoadResult:
         """
         Load records into bronze.dhis2_data.
 
@@ -40,9 +41,12 @@ class PostgresLoader(BaseLoader):
         """
 
         if not records:
-            return 0
-
+            return LoadResult(
+                inserted_rows=0,
+                duplicate_rows=0,
+            )
         inserted = 0
+        duplicates = 0
 
         with self._connection() as connection, connection.cursor() as cursor:
 
@@ -62,6 +66,7 @@ class PostgresLoader(BaseLoader):
                 )
 
                 if cursor.fetchone() is not None:
+                    duplicates += 1
                     continue
 
                 cursor.execute(
@@ -124,4 +129,7 @@ class PostgresLoader(BaseLoader):
 
                 inserted += 1
 
-        return inserted
+        return LoadResult(
+            inserted_rows=inserted,
+            duplicate_rows=duplicates,
+        )

@@ -8,12 +8,14 @@ into a target data store.
 from abc import ABC, abstractmethod
 from typing import Any
 
+from hip.loaders.result import LoadResult
+
 
 class BaseLoader(ABC):
     """Abstract base class for all HIP loaders."""
 
     @abstractmethod
-    def load(self, records: list[Any]) -> int:
+    def load(self, records: list[Any]) -> LoadResult:
         """
         Load records into the target system.
 
@@ -24,7 +26,7 @@ class BaseLoader(ABC):
 
         Returns
         -------
-        int
-            Number of records successfully loaded.
+        LoadResult
+            Structured outcome of the loading operation.
         """
         raise NotImplementedError

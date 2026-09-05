@@ -1,6 +1,7 @@
 from unittest.mock import Mock
 
 from hip.audit.service import AuditService
+from hip.loaders.result import LoadResult
 from hip.pipelines.config import PipelineConfig
 from hip.pipelines.dhis2 import DHIS2Pipeline
 from hip.pipelines.request import PipelineRequest
@@ -29,7 +30,10 @@ def test_dhis2_pipeline_orchestrates_extract_transform_validate_load():
     ]
 
     validator.validate.return_value = True
-    loader.load.return_value = 2
+    loader.load.return_value = LoadResult(
+        inserted_rows=2,
+        duplicate_rows=0,
+    )
 
     audit = Mock(spec=AuditService)
     audit.start_batch.return_value = "batch-001"
@@ -122,7 +126,10 @@ def test_dhis2_pipeline_does_not_load_invalid_records():
         False,
     ]
 
-    loader.load.return_value = 1
+    loader.load.return_value = LoadResult(
+        inserted_rows=1,
+        duplicate_rows=0,
+    )
 
     audit = Mock(spec=AuditService)
     audit.start_batch.return_value = "batch-001"
@@ -332,4 +339,63 @@ def test_dhis2_pipeline_marks_batch_failed_when_loading_fails():
     )
     loader.load.assert_called_once_with(
         [transformed_record]
+    )
+
+def test_dhis2_pipeline_treats_duplicates_as_successfully_processed():
+    extractor = Mock()
+    transformer = Mock()
+    validator = Mock()
+    loader = Mock()
+
+    extractor.extract.return_value = {
+        "dataSet": "TEST_DATASET",
+        "dataValues": [
+            {
+                "dataElement": "ELEMENT_1",
+                "orgUnit": "ORG_1",
+                "period": "202608",
+                "value": "10",
+            }
+        ],
+    }
+
+    transformed_record = Mock()
+    transformer.transform.return_value = transformed_record
+    validator.validate.return_value = True
+
+    loader.load.return_value = LoadResult(
+        inserted_rows=0,
+        duplicate_rows=1,
+    )
+
+    audit = Mock(spec=AuditService)
+    audit.start_batch.return_value = "batch-001"
+
+    pipeline = DHIS2Pipeline(
+        extractor=extractor,
+        transformer=transformer,
+        validator=validator,
+        loader=loader,
+        audit=audit,
+        config=PipelineConfig(
+            environment="TEST",
+            initiated_by="pytest",
+            batch_name="duplicate-test",
+        ),
+    )
+
+    result = pipeline.run(
+        PipelineRequest(
+            endpoint="/api/dataValueSets",
+            params={"period": "202608"},
+        )
+    )
+
+    assert result == 0
+
+    audit.complete_batch.assert_called_once_with(
+        batch_id="batch-001",
+        total_rows=1,
+        successful_rows=1,
+        failed_rows=0,
     )

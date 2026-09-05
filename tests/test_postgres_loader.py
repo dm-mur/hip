@@ -56,12 +56,14 @@ def test_postgres_loader_is_idempotent():
     # First load should insert the record.
     first_result = loader.load([record])
 
-    assert first_result == 1
+    assert first_result.inserted_rows == 1
+    assert first_result.duplicate_rows == 0
 
     # Loading the exact same record again should not insert a duplicate.
     second_result = loader.load([record])
 
-    assert second_result == 0
+    assert second_result.inserted_rows == 0
+    assert second_result.duplicate_rows == 1
 
     # Confirm that exactly one copy exists.
     with loader._connection() as connection, connection.cursor() as cursor:
@@ -112,8 +114,11 @@ def test_postgres_loader_allows_same_hash_for_different_instances():
     first_result = loader.load([record_1])
     second_result = loader.load([record_2])
 
-    assert first_result == 1
-    assert second_result == 1
+    assert first_result.inserted_rows == 1
+    assert first_result.duplicate_rows == 0
+
+    assert second_result.inserted_rows == 1
+    assert second_result.duplicate_rows == 0
 
     with loader._connection() as connection, connection.cursor() as cursor:
         cursor.execute(

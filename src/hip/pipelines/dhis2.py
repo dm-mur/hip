@@ -96,15 +96,19 @@ class DHIS2Pipeline(BasePipeline):
                 )
                 return 0
 
-            loaded_count = self.loader.load(valid_records)
+            load_result = self.loader.load(valid_records)
 
             self.audit.complete_batch(
                 batch_id=batch_id,
                 total_rows=len(raw_records),
-                successful_rows=loaded_count,
-                failed_rows=failed_rows + (len(valid_records) - loaded_count),
+                successful_rows=(
+                    load_result.inserted_rows
+                    + load_result.duplicate_rows
+                ),
+                failed_rows=failed_rows,
             )
-            return loaded_count
+
+            return load_result.inserted_rows
 
         except Exception as exc:
             self.audit.fail_batch(
