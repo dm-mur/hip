@@ -10,6 +10,8 @@ import json
 from typing import Any
 
 from hip.mappings.dhis2 import DEFAULT_DHIS2_MAPPING
+from hip.metadata.dhis2 import DHIS2Metadata
+from hip.metadata.service import DHIS2MetadataService
 from hip.models.dhis2 import DHIS2Record
 from hip.pipelines.context import PipelineContext
 from hip.transformers.base import BaseTransformer
@@ -22,9 +24,15 @@ class DHIS2Transformer(BaseTransformer):
         self,
         source_instance: str,
         mapping: dict[str, str] | None = None,
+        metadata_service: DHIS2MetadataService | None = None,
     ) -> None:
         self.source_instance = source_instance
-        self.mapping = mapping or DEFAULT_DHIS2_MAPPING
+        self.mapping = (
+            DEFAULT_DHIS2_MAPPING
+            if mapping is None
+            else mapping
+        )
+        self.metadata_service = metadata_service
 
     def transform(
         self,
@@ -40,19 +48,41 @@ class DHIS2Transformer(BaseTransformer):
 
         record_hash = self._generate_record_hash(record)
 
+        metadata = DHIS2Metadata()
+
+        if self.metadata_service is not None:
+            metadata = self.metadata_service.resolve(
+                data_element=canonical["data_element"],
+                org_unit=canonical["org_unit"],
+                category_option_combo=canonical["category_option_combo"],
+                attribute_option_combo=canonical["attribute_option_combo"],
+            )
+
         return DHIS2Record(
             batch_id=context.batch_id,
             source_instance=self.source_instance,
             dataset_id=canonical["dataset_id"],
             data_element=canonical["data_element"],
-            data_element_name=canonical["data_element_name"],
             org_unit=canonical["org_unit"],
-            org_unit_name=canonical["org_unit_name"],
             period=canonical["period"],
             category_option_combo=canonical["category_option_combo"],
-            category_option_combo_name=canonical["category_option_combo_name"],
             attribute_option_combo=canonical["attribute_option_combo"],
-            attribute_option_combo_name=canonical["attribute_option_combo_name"],
+            data_element_name=(
+                metadata.data_element_name
+                or record.get("dataElementName")
+            ),
+            org_unit_name=(
+                metadata.org_unit_name
+                or record.get("orgUnitName")
+            ),
+            category_option_combo_name=(
+                metadata.category_option_combo_name
+                or record.get("categoryOptionComboName")
+            ),
+            attribute_option_combo_name=(
+                metadata.attribute_option_combo_name
+                or record.get("attributeOptionComboName")
+            ),
             value=canonical["value"],
             comment=canonical["comment"],
             followup=canonical["followup"],

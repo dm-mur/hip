@@ -11,6 +11,8 @@ from hip.config.database import DatabaseSettings
 from hip.config.source import DHIS2SourceConfig, SourceConfig
 from hip.extractors.dhis2 import DHIS2Extractor
 from hip.loaders.postgres import PostgresLoader
+from hip.mappings.dhis2 import DEFAULT_DHIS2_MAPPING
+from hip.metadata.service import DHIS2MetadataService
 from hip.pipelines.base import BasePipeline
 from hip.pipelines.config import PipelineConfig
 from hip.pipelines.dhis2 import DHIS2Pipeline
@@ -86,6 +88,7 @@ class PipelineFactory:
         source_config: SourceConfig,
         database_settings: DatabaseSettings,
         pipeline_config: PipelineConfig,
+        metadata_service: DHIS2MetadataService | None = None,
     ) -> DHIS2Pipeline:
         """
         Create a fully configured DHIS2 pipeline.
@@ -118,6 +121,8 @@ class PipelineFactory:
 
         transformer = DHIS2Transformer(
             source_instance=source_config.source_instance,
+            mapping=DEFAULT_DHIS2_MAPPING,
+            metadata_service=metadata_service,
         )
         validator = DHIS2Validator()
 
