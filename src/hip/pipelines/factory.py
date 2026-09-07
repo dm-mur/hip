@@ -12,6 +12,7 @@ from hip.config.source import DHIS2SourceConfig, SourceConfig
 from hip.extractors.dhis2 import DHIS2Extractor
 from hip.loaders.postgres import PostgresLoader
 from hip.mappings.dhis2 import DEFAULT_DHIS2_MAPPING
+from hip.metadata.api import DHIS2APIMetadataService
 from hip.metadata.service import DHIS2MetadataService
 from hip.pipelines.base import BasePipeline
 from hip.pipelines.config import PipelineConfig
@@ -118,6 +119,14 @@ class PipelineFactory:
         extractor = DHIS2Extractor(
             settings=source_config.settings,
         )
+
+        if metadata_service is None:
+            metadata_service = DHIS2APIMetadataService(
+                source_instance=source_config.source_instance,
+                settings=source_config.settings,
+            )
+
+            metadata_service.load()
 
         transformer = DHIS2Transformer(
             source_instance=source_config.source_instance,

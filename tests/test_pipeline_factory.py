@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 
 from hip.config.database import DatabaseSettings
@@ -5,6 +7,7 @@ from hip.config.settings import DHIS2Settings
 from hip.config.source import DHIS2SourceConfig
 from hip.extractors.dhis2 import DHIS2Extractor
 from hip.loaders.postgres import PostgresLoader
+from hip.metadata.in_memory import InMemoryDHIS2MetadataService
 from hip.pipelines.base import BasePipeline
 from hip.pipelines.config import PipelineConfig
 from hip.pipelines.dhis2 import DHIS2Pipeline
@@ -56,10 +59,13 @@ def test_factory_creates_dhis2_pipeline():
         batch_name="Factory Test",
     )
 
+    metadata_service = InMemoryDHIS2MetadataService()
+
     pipeline = PipelineFactory.create_dhis2(
         source_config=source_config,
         database_settings=database_settings,
         pipeline_config=pipeline_config,
+        metadata_service=metadata_service,
     )
 
     assert isinstance(pipeline, DHIS2Pipeline)
@@ -205,14 +211,17 @@ def test_factory_registry_creators_return_base_pipeline():
 
     registry = PipelineFactory.registry()
 
-    for creator in registry.values():
-        pipeline = creator(
-            source_config=source_config,
-            database_settings=database_settings,
-            pipeline_config=pipeline_config,
-        )
+    with patch(
+        "hip.pipelines.factory.DHIS2APIMetadataService.load"
+    ):
+        for creator in registry.values():
+            result = creator(
+                source_config=source_config,
+                database_settings=database_settings,
+                pipeline_config=pipeline_config,
+            )
 
-        assert isinstance(pipeline, BasePipeline)
+            assert isinstance(result, BasePipeline)
 
 
 def test_dhis2_factory_rejects_incompatible_source_config():
@@ -241,4 +250,5 @@ def test_dhis2_factory_rejects_incompatible_source_config():
             source_config=OtherSourceConfig(),
             database_settings=database_settings,
             pipeline_config=pipeline_config,
+            metadata_service=InMemoryDHIS2MetadataService(),
         )
