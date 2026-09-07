@@ -66,7 +66,7 @@ def test_api_metadata_service_rejects_empty_source_instance():
         raise AssertionError("Expected ValueError")
 
 
-def test_api_metadata_service_loads_lookup_caches():
+def test_api_metadata_service_preloads_requested_metadata():
     service = DHIS2APIMetadataService(
         source_instance="instance_a",
         settings=make_settings("https://instance-a.example.org"),
@@ -118,7 +118,19 @@ def test_api_metadata_service_loads_lookup_caches():
             category_option_combos_response,
         ],
     ) as get:
-        service.load()
+        service.preload(
+            data_elements={
+                "DE123",
+                "DE456",
+            },
+            org_units={
+                "OU123",
+            },
+            category_option_combos={
+                "COC123",
+                "AOC123",
+            },
+        )
 
     assert service.data_elements == {
         "DE123": "TX_CURR",
@@ -171,3 +183,58 @@ def test_api_metadata_service_resolves_loaded_metadata():
     assert metadata.org_unit_name == "Example Health Centre"
     assert metadata.category_option_combo_name == "Male, 20-24"
     assert metadata.attribute_option_combo_name == "Default"
+
+def test_api_metadata_service_skips_http_for_empty_preload():
+    service = DHIS2APIMetadataService(
+        source_instance="instance_a",
+        settings=make_settings("https://instance-a.example.org"),
+    )
+
+    with patch(
+        "hip.metadata.api.requests.get",
+    ) as get:
+        service.preload(
+            data_elements=set(),
+            org_units=set(),
+            category_option_combos=set(),
+        )
+
+    get.assert_not_called()
+
+def test_api_metadata_service_filters_by_requested_ids():
+    service = DHIS2APIMetadataService(
+        source_instance="instance_a",
+        settings=make_settings("https://instance-a.example.org"),
+    )
+
+    response = Mock()
+    response.json.return_value = {
+        "dataElements": [],
+    }
+
+    with patch(
+        "hip.metadata.api.requests.get",
+        return_value=response,
+    ) as get:
+        service.preload(
+            data_elements={
+                "DE456",
+                "DE123",
+            },
+            org_units=set(),
+            category_option_combos=set(),
+        )
+
+    get.assert_called_once_with(
+        "https://instance-a.example.org/api/dataElements",
+        params={
+            "fields": "id,name",
+            "filter": "id:in:[DE123,DE456]",
+            "paging": "false",
+        },
+        auth=(
+            "test_user",
+            "test_password",
+        ),
+        timeout=60,
+    )

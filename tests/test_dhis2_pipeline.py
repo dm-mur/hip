@@ -2,6 +2,7 @@ from unittest.mock import Mock
 
 from hip.audit.service import AuditService
 from hip.loaders.result import LoadResult
+from hip.metadata.service import DHIS2MetadataService
 from hip.pipelines.config import PipelineConfig
 from hip.pipelines.dhis2 import DHIS2Pipeline
 from hip.pipelines.request import PipelineRequest
@@ -405,3 +406,98 @@ def test_dhis2_pipeline_treats_duplicates_as_successfully_processed():
         failed_rows=0,
         duplicate_rows=1,
     )
+
+def test_dhis2_pipeline_preloads_unique_metadata_before_transform():
+    extractor = Mock()
+    transformer = Mock()
+    validator = Mock()
+    loader = Mock()
+    metadata_service = Mock(spec=DHIS2MetadataService)
+
+    extractor.extract.return_value = {
+        "dataSet": "TEST_DATASET",
+        "dataValues": [
+            {
+                "dataElement": "DE001",
+                "orgUnit": "OU001",
+                "period": "202608",
+                "categoryOptionCombo": "COC001",
+                "attributeOptionCombo": "AOC001",
+                "value": "10",
+            },
+            {
+                "dataElement": "DE001",
+                "orgUnit": "OU001",
+                "period": "202608",
+                "categoryOptionCombo": "COC002",
+                "attributeOptionCombo": "AOC001",
+                "value": "20",
+            },
+            {
+                "dataElement": "DE002",
+                "orgUnit": "OU002",
+                "period": "202608",
+                "categoryOptionCombo": "COC001",
+                "attributeOptionCombo": "AOC002",
+                "value": "30",
+            },
+        ],
+    }
+
+    transformer.transform.side_effect = [
+        Mock(),
+        Mock(),
+        Mock(),
+    ]
+
+    validator.validate.return_value = True
+
+    loader.load.return_value = LoadResult(
+        inserted_rows=3,
+        duplicate_rows=0,
+    )
+
+    audit = Mock(spec=AuditService)
+    audit.start_batch.return_value = "batch-001"
+
+    pipeline = DHIS2Pipeline(
+        extractor=extractor,
+        transformer=transformer,
+        validator=validator,
+        loader=loader,
+        audit=audit,
+        config=PipelineConfig(
+            environment="DEV",
+            initiated_by="system",
+            batch_name="DHIS2 Pipeline",
+        ),
+        metadata_service=metadata_service,
+    )
+
+    result = pipeline.run(
+        request=PipelineRequest(
+            endpoint="/api/dataValueSets",
+            params={"period": "202608"},
+        )
+    )
+
+    assert result == 3
+
+    metadata_service.preload.assert_called_once_with(
+        data_elements={
+            "DE001",
+            "DE002",
+        },
+        org_units={
+            "OU001",
+            "OU002",
+        },
+        category_option_combos={
+            "COC001",
+            "COC002",
+            "AOC001",
+            "AOC002",
+        },
+    )
+
+    assert transformer.transform.call_count == 3

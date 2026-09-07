@@ -9,6 +9,7 @@ and loading of DHIS2 records.
 from hip.audit.service import AuditService
 from hip.extractors.base import BaseExtractor
 from hip.loaders.base import BaseLoader
+from hip.metadata.service import DHIS2MetadataService
 from hip.pipelines.base import BasePipeline
 from hip.pipelines.config import PipelineConfig
 from hip.pipelines.context import PipelineContext
@@ -30,6 +31,7 @@ class DHIS2Pipeline(BasePipeline):
         loader: BaseLoader,
         audit: AuditService,
         config: PipelineConfig,
+        metadata_service: DHIS2MetadataService | None = None,
     ) -> None:
         super().__init__(
             extractor=extractor,
@@ -39,6 +41,7 @@ class DHIS2Pipeline(BasePipeline):
         )
         self.audit = audit
         self.config = config
+        self.metadata_service = metadata_service
 
     def run(
         self,
@@ -65,6 +68,35 @@ class DHIS2Pipeline(BasePipeline):
             response = self.extractor.extract(request)
 
             raw_records = response.get("dataValues", [])
+
+            if self.metadata_service is not None:
+                data_elements = {
+                    record["dataElement"]
+                    for record in raw_records
+                    if record.get("dataElement")
+                }
+
+                org_units = {
+                    record["orgUnit"]
+                    for record in raw_records
+                    if record.get("orgUnit")
+                }
+
+                category_option_combos = {
+                    value
+                    for record in raw_records
+                    for value in (
+                        record.get("categoryOptionCombo"),
+                        record.get("attributeOptionCombo"),
+                    )
+                    if value
+                }
+
+                self.metadata_service.preload(
+                    data_elements=data_elements,
+                    org_units=org_units,
+                    category_option_combos=category_option_combos,
+                )
             dataset_id = response.get("dataSet")
             
             valid_records = []

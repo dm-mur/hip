@@ -126,8 +126,6 @@ class PipelineFactory:
                 settings=source_config.settings,
             )
 
-            metadata_service.load()
-
         transformer = DHIS2Transformer(
             source_instance=source_config.source_instance,
             mapping=DEFAULT_DHIS2_MAPPING,
@@ -150,6 +148,7 @@ class PipelineFactory:
             loader=loader,
             audit=audit,
             config=pipeline_config,
+            metadata_service=metadata_service,
         )
 
 

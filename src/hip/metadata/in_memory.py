@@ -43,3 +43,12 @@ class InMemoryDHIS2MetadataService:
                 else None
             ),
         )
+
+    def preload(
+        self,
+        *,
+        data_elements: set[str],
+        org_units: set[str],
+        category_option_combos: set[str],
+    ) -> None:
+        """Metadata is already available in memory."""

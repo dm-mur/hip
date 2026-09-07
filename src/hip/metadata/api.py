@@ -42,13 +42,18 @@ class DHIS2APIMetadataService:
         self,
         endpoint: str,
         collection_key: str,
+        ids: set[str],
     ) -> dict[str, str]:
-        """Fetch a DHIS2 metadata collection as a UID-to-name lookup."""
+        if not ids:
+            return {}
+
+        filter_value = ",".join(sorted(ids))
 
         response = requests.get(
             self._url(endpoint),
             params={
                 "fields": "id,name",
+                "filter": f"id:in:[{filter_value}]",
                 "paging": "false",
             },
             auth=(
@@ -57,7 +62,6 @@ class DHIS2APIMetadataService:
             ),
             timeout=60,
         )
-
         response.raise_for_status()
 
         payload: dict[str, Any] = response.json()
@@ -68,22 +72,35 @@ class DHIS2APIMetadataService:
             if item.get("id") and item.get("name")
         }
 
-    def load(self) -> None:
-        """Load metadata from the configured DHIS2 instance."""
-
-        self.data_elements = self._fetch_lookup(
-            endpoint="/api/dataElements",
-            collection_key="dataElements",
+    def preload(
+        self,
+        *,
+        data_elements: set[str],
+        org_units: set[str],
+        category_option_combos: set[str],
+    ) -> None:
+        self.data_elements.update(
+            self._fetch_lookup(
+                endpoint="/api/dataElements",
+                collection_key="dataElements",
+                ids=data_elements,
+            )
         )
 
-        self.org_units = self._fetch_lookup(
-            endpoint="/api/organisationUnits",
-            collection_key="organisationUnits",
+        self.org_units.update(
+            self._fetch_lookup(
+                endpoint="/api/organisationUnits",
+                collection_key="organisationUnits",
+                ids=org_units,
+            )
         )
 
-        self.category_option_combos = self._fetch_lookup(
-            endpoint="/api/categoryOptionCombos",
-            collection_key="categoryOptionCombos",
+        self.category_option_combos.update(
+            self._fetch_lookup(
+                endpoint="/api/categoryOptionCombos",
+                collection_key="categoryOptionCombos",
+                ids=category_option_combos,
+            )
         )
 
     def resolve(

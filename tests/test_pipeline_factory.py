@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 import pytest
 
 from hip.config.database import DatabaseSettings
@@ -211,17 +209,14 @@ def test_factory_registry_creators_return_base_pipeline():
 
     registry = PipelineFactory.registry()
 
-    with patch(
-        "hip.pipelines.factory.DHIS2APIMetadataService.load"
-    ):
-        for creator in registry.values():
-            result = creator(
-                source_config=source_config,
-                database_settings=database_settings,
-                pipeline_config=pipeline_config,
-            )
+    for creator in registry.values():
+        result = creator(
+            source_config=source_config,
+            database_settings=database_settings,
+            pipeline_config=pipeline_config,
+        )
 
-            assert isinstance(result, BasePipeline)
+        assert isinstance(result, BasePipeline)
 
 
 def test_dhis2_factory_rejects_incompatible_source_config():
