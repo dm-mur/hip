@@ -27,6 +27,7 @@ def test_bronze_repository_fetches_unprocessed_records():
 
     result = repository.fetch_unprocessed(
         connection,
+        source_instance="live_test",
         limit=100,
     )
 
@@ -45,6 +46,7 @@ def test_bronze_repository_fetches_unprocessed_records():
 
     assert "LEFT JOIN silver.dhis2_observation" in query
     assert "WHERE s.bronze_id IS NULL" in query
+    assert "b.source_instance = %s" in query
     assert "ORDER BY b.bronze_id" in query
     assert "LIMIT %s" in query
-    assert params == (100,)
+    assert params == ("live_test", 100)

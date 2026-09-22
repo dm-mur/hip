@@ -13,6 +13,7 @@ class BronzeDHIS2Repository:
         self,
         connection,
         *,
+        source_instance: str,
         limit: int | None = None,
     ) -> list[dict[str, Any]]:
         query = """
@@ -38,14 +39,15 @@ class BronzeDHIS2Repository:
             LEFT JOIN silver.dhis2_observation AS s
                 ON s.bronze_id = b.bronze_id
             WHERE s.bronze_id IS NULL
+                AND b.source_instance = %s
             ORDER BY b.bronze_id
         """
 
-        params: tuple[int, ...] = ()
+        params: tuple = (source_instance,)
 
         if limit is not None:
             query += "\nLIMIT %s"
-            params = (limit,)
+            params = (source_instance, limit)
 
         with connection.cursor() as cursor:
             cursor.execute(query, params)

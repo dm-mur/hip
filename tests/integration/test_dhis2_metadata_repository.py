@@ -170,3 +170,64 @@ def test_metadata_repository_get_many_handles_empty_uid_set():
     )
 
     assert result == {}
+
+def test_metadata_repository_upsert_many_persists_metadata():
+    settings = DatabaseSettings.from_environment()
+    repository = DHIS2MetadataRepository(settings)
+
+    source_instance = "metadata_upsert_many_test"
+    metadata_type = "DATA_ELEMENT"
+
+    with repository._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            DELETE FROM silver.dhis2_metadata
+            WHERE source_instance = %s
+            """,
+            (source_instance,),
+        )
+
+    processed = repository.upsert_many(
+        source_instance=source_instance,
+        metadata_type=metadata_type,
+        metadata={
+            "DE001": "Data Element One",
+            "DE002": "Data Element Two",
+            "DE003": "Data Element Three",
+        },
+    )
+
+    assert processed == 3
+
+    result = repository.get_many(
+        source_instance=source_instance,
+        metadata_type=metadata_type,
+        uids={"DE001", "DE002", "DE003"},
+    )
+
+    assert result == {
+        "DE001": "Data Element One",
+        "DE002": "Data Element Two",
+        "DE003": "Data Element Three",
+    }
+
+    with repository._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            DELETE FROM silver.dhis2_metadata
+            WHERE source_instance = %s
+            """,
+            (source_instance,),
+        )
+
+def test_metadata_repository_upsert_many_handles_empty_metadata():
+    settings = DatabaseSettings.from_environment()
+    repository = DHIS2MetadataRepository(settings)
+
+    processed = repository.upsert_many(
+        source_instance="metadata_upsert_many_test",
+        metadata_type="DATA_ELEMENT",
+        metadata={},
+    )
+
+    assert processed == 0

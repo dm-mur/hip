@@ -112,6 +112,52 @@ class DHIS2MetadataRepository:
                 ),
             )
 
+    def upsert_many(
+        self,
+        *,
+        source_instance: str,
+        metadata_type: str,
+        metadata: dict[str, str],
+    ) -> int:
+        """Persist multiple metadata UID-to-name mappings."""
+
+        if not metadata:
+            return 0
+
+        rows = [
+            (
+                source_instance,
+                metadata_type,
+                uid,
+                name,
+            )
+            for uid, name in metadata.items()
+        ]
+
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.executemany(
+                """
+                INSERT INTO silver.dhis2_metadata (
+                    source_instance,
+                    metadata_type,
+                    uid,
+                    name
+                )
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (
+                    source_instance,
+                    metadata_type,
+                    uid
+                )
+                DO UPDATE SET
+                    name = EXCLUDED.name,
+                    resolved_at = NOW()
+                """,
+                rows,
+            )
+
+        return len(rows)
+
     def seed_from_bronze(self, *, source_instance: str) -> int:
         """Seed the metadata cache from names already available in Bronze."""
 
