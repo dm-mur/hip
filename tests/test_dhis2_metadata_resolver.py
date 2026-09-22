@@ -183,3 +183,59 @@ def test_resolver_leaves_unresolved_metadata_absent():
     assert result.attribute_option_combos == {}
 
     repository.upsert_many.assert_not_called()
+
+    repository.record_unresolved.assert_called_once_with(
+        source_instance="test_instance",
+        metadata_type="DATA_ELEMENT",
+        uid="UNKNOWN_DE",
+    )
+
+    repository.mark_resolved.assert_not_called()
+
+def test_resolver_marks_successfully_fetched_metadata_resolved():
+    repository = MagicMock()
+    api_service = MagicMock()
+
+    repository.get_many.side_effect = [
+        {},
+        {},
+        {},
+        {},
+    ]
+
+    api_service.resolve.return_value = DHIS2Metadata(
+        data_element_name="Recovered Data Element",
+    )
+
+    resolver = DHIS2MetadataResolver(
+        repository=repository,
+        api_service=api_service,
+    )
+
+    result = resolver.resolve_many(
+        source_instance="test_instance",
+        data_elements={"DE_RECOVERED"},
+        org_units=set(),
+        category_option_combos=set(),
+        attribute_option_combos=set(),
+    )
+
+    assert result.data_elements == {
+        "DE_RECOVERED": "Recovered Data Element",
+    }
+
+    repository.upsert_many.assert_called_once_with(
+        source_instance="test_instance",
+        metadata_type="DATA_ELEMENT",
+        metadata={
+            "DE_RECOVERED": "Recovered Data Element",
+        },
+    )
+
+    repository.mark_resolved.assert_called_once_with(
+        source_instance="test_instance",
+        metadata_type="DATA_ELEMENT",
+        uid="DE_RECOVERED",
+    )
+
+    repository.record_unresolved.assert_not_called()

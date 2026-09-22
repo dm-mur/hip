@@ -231,3 +231,309 @@ def test_metadata_repository_upsert_many_handles_empty_metadata():
     )
 
     assert processed == 0
+
+def test_metadata_repository_records_unresolved_metadata():
+    settings = DatabaseSettings.from_environment()
+    repository = DHIS2MetadataRepository(settings)
+
+    source_instance = "metadata_resolution_test"
+    metadata_type = "CATEGORY_OPTION_COMBO"
+    uid = "UNRESOLVED_COC_001"
+
+    with repository._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            DELETE FROM silver.dhis2_metadata_resolution
+            WHERE source_instance = %s
+              AND metadata_type = %s
+              AND uid = %s
+            """,
+            (
+                source_instance,
+                metadata_type,
+                uid,
+            ),
+        )
+
+    repository.record_unresolved(
+        source_instance=source_instance,
+        metadata_type=metadata_type,
+        uid=uid,
+    )
+
+    with repository._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT
+                status,
+                attempt_count,
+                resolved_at
+            FROM silver.dhis2_metadata_resolution
+            WHERE source_instance = %s
+              AND metadata_type = %s
+              AND uid = %s
+            """,
+            (
+                source_instance,
+                metadata_type,
+                uid,
+            ),
+        )
+
+        row = cursor.fetchone()
+
+    assert row is not None
+    assert row[0] == "UNRESOLVED"
+    assert row[1] == 1
+    assert row[2] is None
+
+    with repository._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            DELETE FROM silver.dhis2_metadata_resolution
+            WHERE source_instance = %s
+              AND metadata_type = %s
+              AND uid = %s
+            """,
+            (
+                source_instance,
+                metadata_type,
+                uid,
+            ),
+        )
+
+
+def test_metadata_repository_increments_unresolved_attempt_count():
+    settings = DatabaseSettings.from_environment()
+    repository = DHIS2MetadataRepository(settings)
+
+    source_instance = "metadata_resolution_retry_test"
+    metadata_type = "CATEGORY_OPTION_COMBO"
+    uid = "UNRESOLVED_COC_002"
+
+    with repository._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            DELETE FROM silver.dhis2_metadata_resolution
+            WHERE source_instance = %s
+              AND metadata_type = %s
+              AND uid = %s
+            """,
+            (
+                source_instance,
+                metadata_type,
+                uid,
+            ),
+        )
+
+    repository.record_unresolved(
+        source_instance=source_instance,
+        metadata_type=metadata_type,
+        uid=uid,
+    )
+
+    repository.record_unresolved(
+        source_instance=source_instance,
+        metadata_type=metadata_type,
+        uid=uid,
+    )
+
+    with repository._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT
+                status,
+                attempt_count,
+                resolved_at
+            FROM silver.dhis2_metadata_resolution
+            WHERE source_instance = %s
+              AND metadata_type = %s
+              AND uid = %s
+            """,
+            (
+                source_instance,
+                metadata_type,
+                uid,
+            ),
+        )
+
+        row = cursor.fetchone()
+
+    assert row is not None
+    assert row[0] == "UNRESOLVED"
+    assert row[1] == 2
+    assert row[2] is None
+
+    with repository._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            DELETE FROM silver.dhis2_metadata_resolution
+            WHERE source_instance = %s
+              AND metadata_type = %s
+              AND uid = %s
+            """,
+            (
+                source_instance,
+                metadata_type,
+                uid,
+            ),
+        )
+
+
+def test_metadata_repository_marks_unresolved_metadata_resolved():
+    settings = DatabaseSettings.from_environment()
+    repository = DHIS2MetadataRepository(settings)
+
+    source_instance = "metadata_resolution_resolved_test"
+    metadata_type = "CATEGORY_OPTION_COMBO"
+    uid = "RESOLVED_COC_001"
+
+    with repository._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            DELETE FROM silver.dhis2_metadata_resolution
+            WHERE source_instance = %s
+              AND metadata_type = %s
+              AND uid = %s
+            """,
+            (
+                source_instance,
+                metadata_type,
+                uid,
+            ),
+        )
+
+    repository.record_unresolved(
+        source_instance=source_instance,
+        metadata_type=metadata_type,
+        uid=uid,
+    )
+
+    repository.mark_resolved(
+        source_instance=source_instance,
+        metadata_type=metadata_type,
+        uid=uid,
+    )
+
+    with repository._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT
+                status,
+                attempt_count,
+                resolved_at
+            FROM silver.dhis2_metadata_resolution
+            WHERE source_instance = %s
+              AND metadata_type = %s
+              AND uid = %s
+            """,
+            (
+                source_instance,
+                metadata_type,
+                uid,
+            ),
+        )
+
+        row = cursor.fetchone()
+
+    assert row is not None
+    assert row[0] == "RESOLVED"
+    assert row[1] == 1
+    assert row[2] is not None
+
+    with repository._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            DELETE FROM silver.dhis2_metadata_resolution
+            WHERE source_instance = %s
+              AND metadata_type = %s
+              AND uid = %s
+            """,
+            (
+                source_instance,
+                metadata_type,
+                uid,
+            ),
+        )
+
+def test_metadata_repository_reopens_resolved_metadata():
+    settings = DatabaseSettings.from_environment()
+    repository = DHIS2MetadataRepository(settings)
+
+    source_instance = "metadata_resolution_reopen_test"
+    metadata_type = "CATEGORY_OPTION_COMBO"
+    uid = "REOPEN_COC_001"
+
+    with repository._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            DELETE FROM silver.dhis2_metadata_resolution
+            WHERE source_instance = %s
+              AND metadata_type = %s
+              AND uid = %s
+            """,
+            (
+                source_instance,
+                metadata_type,
+                uid,
+            ),
+        )
+
+    repository.record_unresolved(
+        source_instance=source_instance,
+        metadata_type=metadata_type,
+        uid=uid,
+    )
+
+    repository.mark_resolved(
+        source_instance=source_instance,
+        metadata_type=metadata_type,
+        uid=uid,
+    )
+
+    repository.record_unresolved(
+        source_instance=source_instance,
+        metadata_type=metadata_type,
+        uid=uid,
+    )
+
+    with repository._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT
+                status,
+                attempt_count,
+                resolved_at
+            FROM silver.dhis2_metadata_resolution
+            WHERE source_instance = %s
+              AND metadata_type = %s
+              AND uid = %s
+            """,
+            (
+                source_instance,
+                metadata_type,
+                uid,
+            ),
+        )
+
+        row = cursor.fetchone()
+
+    assert row is not None
+    assert row[0] == "UNRESOLVED"
+    assert row[1] == 2
+    assert row[2] is None
+
+    with repository._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            DELETE FROM silver.dhis2_metadata_resolution
+            WHERE source_instance = %s
+              AND metadata_type = %s
+              AND uid = %s
+            """,
+            (
+                source_instance,
+                metadata_type,
+                uid,
+            ),
+        )

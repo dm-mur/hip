@@ -88,8 +88,20 @@ class DHIS2MetadataResolver:
                 category_option_combo=None,
                 attribute_option_combo=None,
             )
+
             if metadata.data_element_name is not None:
                 data_element_names[uid] = metadata.data_element_name
+                self.repository.mark_resolved(
+                    source_instance=source_instance,
+                    metadata_type="DATA_ELEMENT",
+                    uid=uid,
+                )
+            else:
+                self.repository.record_unresolved(
+                    source_instance=source_instance,
+                    metadata_type="DATA_ELEMENT",
+                    uid=uid,
+                )
 
         for uid in missing_org_units:
             metadata = self.api_service.resolve(
@@ -98,8 +110,20 @@ class DHIS2MetadataResolver:
                 category_option_combo=None,
                 attribute_option_combo=None,
             )
+
             if metadata.org_unit_name is not None:
                 org_unit_names[uid] = metadata.org_unit_name
+                self.repository.mark_resolved(
+                    source_instance=source_instance,
+                    metadata_type="ORG_UNIT",
+                    uid=uid,
+                )
+            else:
+                self.repository.record_unresolved(
+                    source_instance=source_instance,
+                    metadata_type="ORG_UNIT",
+                    uid=uid,
+                )
 
         for uid in missing_category_option_combos:
             metadata = self.api_service.resolve(
@@ -108,9 +132,21 @@ class DHIS2MetadataResolver:
                 category_option_combo=uid,
                 attribute_option_combo=None,
             )
+
             if metadata.category_option_combo_name is not None:
                 category_option_combo_names[uid] = (
                     metadata.category_option_combo_name
+                )
+                self.repository.mark_resolved(
+                    source_instance=source_instance,
+                    metadata_type="CATEGORY_OPTION_COMBO",
+                    uid=uid,
+                )
+            else:
+                self.repository.record_unresolved(
+                    source_instance=source_instance,
+                    metadata_type="CATEGORY_OPTION_COMBO",
+                    uid=uid,
                 )
 
         for uid in missing_attribute_option_combos:
@@ -120,9 +156,21 @@ class DHIS2MetadataResolver:
                 category_option_combo=None,
                 attribute_option_combo=uid,
             )
+
             if metadata.attribute_option_combo_name is not None:
                 attribute_option_combo_names[uid] = (
                     metadata.attribute_option_combo_name
+                )
+                self.repository.mark_resolved(
+                    source_instance=source_instance,
+                    metadata_type="ATTRIBUTE_OPTION_COMBO",
+                    uid=uid,
+                )
+            else:
+                self.repository.record_unresolved(
+                    source_instance=source_instance,
+                    metadata_type="ATTRIBUTE_OPTION_COMBO",
+                    uid=uid,
                 )
 
         new_data_elements = {

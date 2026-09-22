@@ -218,3 +218,68 @@ class DHIS2MetadataRepository:
                 inserted_or_updated += cursor.rowcount
 
         return inserted_or_updated
+
+    def record_unresolved(
+        self,
+        *,
+        source_instance: str,
+        metadata_type: str,
+        uid: str,
+    ) -> None:
+        """Record a failed metadata resolution attempt."""
+
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO silver.dhis2_metadata_resolution (
+                    source_instance,
+                    metadata_type,
+                    uid
+                )
+                VALUES (%s, %s, %s)
+                ON CONFLICT (
+                    source_instance,
+                    metadata_type,
+                    uid
+                )
+                DO UPDATE SET
+                    status = 'UNRESOLVED',
+                    last_attempted_at = NOW(),
+                    attempt_count =
+                        silver.dhis2_metadata_resolution.attempt_count + 1,
+                    resolved_at = NULL
+                """,
+                (
+                    source_instance,
+                    metadata_type,
+                    uid,
+                ),
+            )
+
+    def mark_resolved(
+        self,
+        *,
+        source_instance: str,
+        metadata_type: str,
+        uid: str,
+    ) -> None:
+        """Mark a previously unresolved metadata UID as resolved."""
+
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE silver.dhis2_metadata_resolution
+                SET
+                    status = 'RESOLVED',
+                    resolved_at = NOW()
+                WHERE source_instance = %s
+                  AND metadata_type = %s
+                  AND uid = %s
+                  AND status = 'UNRESOLVED'
+                """,
+                (
+                    source_instance,
+                    metadata_type,
+                    uid,
+                ),
+            )
