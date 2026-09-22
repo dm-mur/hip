@@ -1,0 +1,142 @@
+from hip.config.database import DatabaseSettings
+from hip.config.settings import DHIS2Settings
+from hip.loaders.result import LoadResult
+from hip.pipelines.silver_runner import SilverDHIS2Runner
+
+
+def test_silver_runner_constructs_and_runs_pipeline(
+    monkeypatch,
+):
+    database_settings = DatabaseSettings(
+        host="localhost",
+        port=5435,
+        database="hip",
+        username="postgres",
+        password="test-password",
+    )
+
+    dhis2_settings = DHIS2Settings(
+        base_url="https://example.org",
+        username="test-user",
+        password="test-password",
+    )
+
+    captured = {}
+
+    class FakePipeline:
+        def __init__(
+            self,
+            *,
+            settings,
+            repository,
+            metadata_resolver,
+            transformer,
+            loader,
+        ):
+            captured["settings"] = settings
+            captured["repository"] = repository
+            captured["metadata_resolver"] = metadata_resolver
+            captured["transformer"] = transformer
+            captured["loader"] = loader
+
+        def run(
+            self,
+            *,
+            source_instance,
+            limit=None,
+        ):
+            captured["source_instance"] = source_instance
+            captured["limit"] = limit
+
+            return LoadResult(
+                inserted_rows=17,
+                duplicate_rows=3,
+            )
+
+    monkeypatch.setattr(
+        "hip.pipelines.silver_runner.SilverDHIS2Pipeline",
+        FakePipeline,
+    )
+
+    result = SilverDHIS2Runner.run(
+        source_instance="test_dhis2",
+        database_settings=database_settings,
+        dhis2_settings=dhis2_settings,
+        limit=500,
+    )
+
+    assert result == LoadResult(
+        inserted_rows=17,
+        duplicate_rows=3,
+    )
+
+    assert captured["settings"] == database_settings
+    assert captured["source_instance"] == "test_dhis2"
+    assert captured["limit"] == 500
+
+
+def test_silver_runner_binds_metadata_service_to_source_instance(
+    monkeypatch,
+):
+    database_settings = DatabaseSettings(
+        host="localhost",
+        port=5435,
+        database="hip",
+        username="postgres",
+        password="test-password",
+    )
+
+    dhis2_settings = DHIS2Settings(
+        base_url="https://example.org",
+        username="test-user",
+        password="test-password",
+    )
+
+    captured = {}
+
+    class FakeMetadataService:
+        def __init__(
+            self,
+            *,
+            source_instance,
+            settings,
+        ):
+            captured["metadata_source_instance"] = source_instance
+            captured["dhis2_settings"] = settings
+
+    class FakePipeline:
+        def __init__(self, **kwargs):
+            pass
+
+        def run(
+            self,
+            *,
+            source_instance,
+            limit=None,
+        ):
+            captured["pipeline_source_instance"] = source_instance
+
+            return LoadResult(
+                inserted_rows=0,
+                duplicate_rows=0,
+            )
+
+    monkeypatch.setattr(
+        "hip.pipelines.silver_runner.DHIS2APIMetadataService",
+        FakeMetadataService,
+    )
+
+    monkeypatch.setattr(
+        "hip.pipelines.silver_runner.SilverDHIS2Pipeline",
+        FakePipeline,
+    )
+
+    SilverDHIS2Runner.run(
+        source_instance="instance_a",
+        database_settings=database_settings,
+        dhis2_settings=dhis2_settings,
+    )
+
+    assert captured["metadata_source_instance"] == "instance_a"
+    assert captured["pipeline_source_instance"] == "instance_a"
+    assert captured["dhis2_settings"] == dhis2_settings

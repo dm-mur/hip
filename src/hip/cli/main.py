@@ -12,9 +12,11 @@ from dotenv import load_dotenv
 from hip.config.database import DatabaseSettings
 from hip.config.settings import DHIS2Settings
 from hip.config.source import DHIS2SourceConfig
+from hip.loaders.result import LoadResult
 from hip.pipelines.config import PipelineConfig
 from hip.pipelines.request import PipelineRequest
 from hip.pipelines.runner import PipelineRunner
+from hip.pipelines.silver_runner import SilverDHIS2Runner
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -82,6 +84,43 @@ def build_parser() -> argparse.ArgumentParser:
         help="Request parameter in KEY=VALUE format; may be repeated",
     )
 
+    process_parser = subparsers.add_parser(
+        "process",
+        help="Process data between HIP platform layers",
+    )
+
+    process_subparsers = process_parser.add_subparsers(
+        dest="layer",
+        required=True,
+    )
+
+    silver_parser = process_subparsers.add_parser(
+        "silver",
+        help="Process Bronze data into Silver",
+    )
+
+    silver_subparsers = silver_parser.add_subparsers(
+        dest="source_type",
+        required=True,
+    )
+
+    silver_dhis2_parser = silver_subparsers.add_parser(
+        "dhis2",
+        help="Process DHIS2 Bronze data into Silver",
+    )
+
+    silver_dhis2_parser.add_argument(
+        "--source-instance",
+        required=True,
+        help="Logical name identifying the DHIS2 source instance",
+    )
+
+    silver_dhis2_parser.add_argument(
+        "--limit",
+        type=int,
+        help="Maximum number of unprocessed Bronze records to process",
+    )
+
     return parser
 
 
@@ -98,18 +137,12 @@ def parse_request_params(
 
     for parameter in parameters or []:
         if "=" not in parameter:
-            raise ValueError(
-                f"Invalid request parameter: {parameter}. "
-                "Expected KEY=VALUE."
-            )
+            raise ValueError(f"Invalid request parameter: {parameter}. Expected KEY=VALUE.")
 
         key, value = parameter.split("=", 1)
 
         if not key.strip():
-            raise ValueError(
-                f"Invalid request parameter: {parameter}. "
-                "Expected KEY=VALUE."
-            )
+            raise ValueError(f"Invalid request parameter: {parameter}. Expected KEY=VALUE.")
 
         params[key] = value
 
@@ -120,9 +153,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
     """Execute a pipeline from parsed CLI arguments."""
 
     if args.pipeline_type != "dhis2":
-        raise ValueError(
-            f"Unsupported CLI pipeline type: {args.pipeline_type}"
-        )
+        raise ValueError(f"Unsupported CLI pipeline type: {args.pipeline_type}")
 
     source_config = DHIS2SourceConfig(
         source_instance=args.source_instance,
@@ -136,7 +167,6 @@ def run_pipeline(args: argparse.Namespace) -> int:
         initiated_by=args.initiated_by,
         batch_name=args.batch_name,
     )
-
 
     params = parse_request_params(
         period=args.period,
@@ -157,6 +187,22 @@ def run_pipeline(args: argparse.Namespace) -> int:
     )
 
 
+def process_silver_dhis2(
+    args: argparse.Namespace,
+) -> LoadResult:
+    """Process DHIS2 Bronze records into Silver."""
+
+    database_settings = DatabaseSettings.from_environment()
+    dhis2_settings = DHIS2Settings.from_environment()
+
+    return SilverDHIS2Runner.run(
+        source_instance=args.source_instance,
+        database_settings=database_settings,
+        dhis2_settings=dhis2_settings,
+        limit=args.limit,
+    )
+
+
 def main() -> int:
     """Run the HIP command-line application."""
 
@@ -173,6 +219,19 @@ def main() -> int:
 
         print(f"Loaded {loaded_count} records")
         return 0
+
+    if args.command == "process":
+        if args.layer == "silver" and args.source_type == "dhis2":
+            try:
+                result = process_silver_dhis2(args)
+            except ValueError as exc:
+                parser.error(str(exc))
+
+            print(f"Inserted {result.inserted_rows} records")
+            print(f"Skipped {result.duplicate_rows} duplicates")
+            return 0
+
+        parser.error(f"Unsupported processing target: {args.layer} {args.source_type}")
 
     parser.error(f"Unknown command: {args.command}")
     return 2

@@ -1,7 +1,8 @@
 import argparse
 import sys
 
-from hip.cli.main import build_parser, main, run_pipeline
+from hip.cli.main import build_parser, main, process_silver_dhis2, run_pipeline
+from hip.loaders.result import LoadResult
 
 
 def test_build_parser_parses_run_command():
@@ -162,10 +163,7 @@ def test_run_pipeline_rejects_invalid_param(monkeypatch):
     try:
         run_pipeline(args)
     except ValueError as exc:
-        assert str(exc) == (
-            "Invalid request parameter: invalid-param. "
-            "Expected KEY=VALUE."
-        )
+        assert str(exc) == ("Invalid request parameter: invalid-param. Expected KEY=VALUE.")
     else:
         raise AssertionError("Expected ValueError")
 
@@ -214,3 +212,126 @@ def test_main_reports_configuration_error_without_traceback(
 
     assert "Missing required DHIS2 configuration" in captured.err
     assert "Traceback" not in captured.err
+
+
+def test_build_parser_parses_process_silver_dhis2_command():
+    parser = build_parser()
+
+    args = parser.parse_args(
+        [
+            "process",
+            "silver",
+            "dhis2",
+            "--source-instance",
+            "test_dhis2",
+            "--limit",
+            "500",
+        ]
+    )
+
+    assert args.command == "process"
+    assert args.layer == "silver"
+    assert args.source_type == "dhis2"
+    assert args.source_instance == "test_dhis2"
+    assert args.limit == 500
+
+
+def test_process_silver_dhis2_delegates_to_runner(
+    monkeypatch,
+):
+    args = argparse.Namespace(
+        command="process",
+        layer="silver",
+        source_type="dhis2",
+        source_instance="test_dhis2",
+        limit=500,
+    )
+
+    monkeypatch.setenv(
+        "DHIS2_BASE_URL",
+        "https://example.org",
+    )
+    monkeypatch.setenv(
+        "DHIS2_USERNAME",
+        "test-user",
+    )
+    monkeypatch.setenv(
+        "DHIS2_PASSWORD",
+        "test-password",
+    )
+    monkeypatch.setenv(
+        "POSTGRES_PASSWORD",
+        "test-password",
+    )
+
+    captured = {}
+
+    def fake_run(
+        *,
+        source_instance,
+        database_settings,
+        dhis2_settings,
+        limit,
+    ):
+        captured["source_instance"] = source_instance
+        captured["database_settings"] = database_settings
+        captured["dhis2_settings"] = dhis2_settings
+        captured["limit"] = limit
+
+        return LoadResult(
+            inserted_rows=17,
+            duplicate_rows=3,
+        )
+
+    monkeypatch.setattr(
+        "hip.cli.main.SilverDHIS2Runner.run",
+        fake_run,
+    )
+
+    result = process_silver_dhis2(args)
+
+    assert result == LoadResult(
+        inserted_rows=17,
+        duplicate_rows=3,
+    )
+
+    assert captured["source_instance"] == "test_dhis2"
+    assert captured["limit"] == 500
+    assert captured["dhis2_settings"].base_url == "https://example.org"
+
+
+def test_main_processes_silver_dhis2(
+    monkeypatch,
+    capsys,
+):
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "hip",
+            "process",
+            "silver",
+            "dhis2",
+            "--source-instance",
+            "test_dhis2",
+            "--limit",
+            "500",
+        ],
+    )
+
+    monkeypatch.setattr(
+        "hip.cli.main.process_silver_dhis2",
+        lambda args: LoadResult(
+            inserted_rows=17,
+            duplicate_rows=3,
+        ),
+    )
+
+    result = main()
+
+    assert result == 0
+
+    captured = capsys.readouterr()
+
+    assert "Inserted 17 records" in captured.out
+    assert "Skipped 3 duplicates" in captured.out
