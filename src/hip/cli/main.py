@@ -14,6 +14,7 @@ from hip.config.settings import DHIS2Settings
 from hip.config.source import DHIS2SourceConfig
 from hip.loaders.result import LoadResult
 from hip.pipelines.config import PipelineConfig
+from hip.pipelines.metadata_retry_runner import DHIS2MetadataRetryRunner
 from hip.pipelines.request import PipelineRequest
 from hip.pipelines.runner import PipelineRunner
 from hip.pipelines.silver_runner import SilverDHIS2Runner
@@ -121,6 +122,27 @@ def build_parser() -> argparse.ArgumentParser:
         help="Maximum number of unprocessed Bronze records to process",
     )
 
+    metadata_parser = process_subparsers.add_parser(
+        "metadata",
+        help="Retry unresolved metadata resolution",
+    )
+
+    metadata_subparsers = metadata_parser.add_subparsers(
+        dest="source_type",
+        required=True,
+    )
+
+    metadata_dhis2_parser = metadata_subparsers.add_parser(
+        "dhis2",
+        help="Retry unresolved DHIS2 metadata",
+    )
+
+    metadata_dhis2_parser.add_argument(
+        "--source-instance",
+        required=True,
+        help="Logical name identifying the DHIS2 source instance",
+    )
+
     return parser
 
 
@@ -202,6 +224,19 @@ def process_silver_dhis2(
         limit=args.limit,
     )
 
+def process_metadata_dhis2(
+    args: argparse.Namespace,
+) -> dict[str, int]:
+    """Retry unresolved DHIS2 metadata."""
+
+    database_settings = DatabaseSettings.from_environment()
+    dhis2_settings = DHIS2Settings.from_environment()
+
+    return DHIS2MetadataRetryRunner.run(
+        source_instance=args.source_instance,
+        database_settings=database_settings,
+        dhis2_settings=dhis2_settings,
+    )
 
 def main() -> int:
     """Run the HIP command-line application."""
@@ -229,6 +264,17 @@ def main() -> int:
 
             print(f"Inserted {result.inserted_rows} records")
             print(f"Skipped {result.duplicate_rows} duplicates")
+            return 0
+
+        if args.layer == "metadata" and args.source_type == "dhis2":
+            try:
+                result = process_metadata_dhis2(args)
+            except ValueError as exc:
+                parser.error(str(exc))
+
+            print(f"Attempted {result['attempted']} metadata resolutions")
+            print(f"Resolved {result['resolved']} metadata items")
+            print(f"Still unresolved {result['unresolved']} metadata items")
             return 0
 
         parser.error(f"Unsupported processing target: {args.layer} {args.source_type}")

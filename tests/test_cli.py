@@ -1,7 +1,13 @@
 import argparse
 import sys
 
-from hip.cli.main import build_parser, main, process_silver_dhis2, run_pipeline
+from hip.cli.main import (
+    build_parser,
+    main,
+    process_metadata_dhis2,
+    process_silver_dhis2,
+    run_pipeline,
+)
 from hip.loaders.result import LoadResult
 
 
@@ -335,3 +341,119 @@ def test_main_processes_silver_dhis2(
 
     assert "Inserted 17 records" in captured.out
     assert "Skipped 3 duplicates" in captured.out
+
+def test_build_parser_parses_process_metadata_dhis2_command():
+    parser = build_parser()
+
+    args = parser.parse_args(
+        [
+            "process",
+            "metadata",
+            "dhis2",
+            "--source-instance",
+            "test_dhis2",
+        ]
+    )
+
+    assert args.command == "process"
+    assert args.layer == "metadata"
+    assert args.source_type == "dhis2"
+    assert args.source_instance == "test_dhis2"
+
+
+def test_process_metadata_dhis2_delegates_to_runner(
+    monkeypatch,
+):
+    args = argparse.Namespace(
+        command="process",
+        layer="metadata",
+        source_type="dhis2",
+        source_instance="test_dhis2",
+    )
+
+    monkeypatch.setenv(
+        "DHIS2_BASE_URL",
+        "https://example.org",
+    )
+    monkeypatch.setenv(
+        "DHIS2_USERNAME",
+        "test-user",
+    )
+    monkeypatch.setenv(
+        "DHIS2_PASSWORD",
+        "test-password",
+    )
+    monkeypatch.setenv(
+        "POSTGRES_PASSWORD",
+        "test-password",
+    )
+
+    captured = {}
+
+    def fake_run(
+        *,
+        source_instance,
+        database_settings,
+        dhis2_settings,
+    ):
+        captured["source_instance"] = source_instance
+        captured["database_settings"] = database_settings
+        captured["dhis2_settings"] = dhis2_settings
+
+        return {
+            "attempted": 5,
+            "resolved": 5,
+            "unresolved": 0,
+        }
+
+    monkeypatch.setattr(
+        "hip.cli.main.DHIS2MetadataRetryRunner.run",
+        fake_run,
+    )
+
+    result = process_metadata_dhis2(args)
+
+    assert result == {
+        "attempted": 5,
+        "resolved": 5,
+        "unresolved": 0,
+    }
+
+    assert captured["source_instance"] == "test_dhis2"
+    assert captured["dhis2_settings"].base_url == "https://example.org"
+
+def test_main_processes_metadata_dhis2(
+    monkeypatch,
+    capsys,
+):
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "hip",
+            "process",
+            "metadata",
+            "dhis2",
+            "--source-instance",
+            "test_dhis2",
+        ],
+    )
+
+    monkeypatch.setattr(
+        "hip.cli.main.process_metadata_dhis2",
+        lambda args: {
+            "attempted": 5,
+            "resolved": 3,
+            "unresolved": 2,
+        },
+    )
+
+    result = main()
+
+    assert result == 0
+
+    captured = capsys.readouterr()
+
+    assert "Attempted 5 metadata resolutions" in captured.out
+    assert "Resolved 3 metadata items" in captured.out
+    assert "Still unresolved 2 metadata items" in captured.out

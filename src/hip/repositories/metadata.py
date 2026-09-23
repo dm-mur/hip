@@ -1,3 +1,5 @@
+from typing import Any
+
 from hip.config.database import DatabaseSettings
 
 
@@ -283,3 +285,38 @@ class DHIS2MetadataRepository:
                     uid,
                 ),
             )
+
+    def fetch_unresolved(
+        self,
+        *,
+        source_instance: str,
+    ) -> list[dict[str, Any]]:
+        """Return unresolved metadata requiring another resolution attempt."""
+
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    metadata_type,
+                    uid,
+                    attempt_count
+                FROM silver.dhis2_metadata_resolution
+                WHERE source_instance = %s
+                AND status = 'UNRESOLVED'
+                ORDER BY
+                    metadata_type,
+                    uid
+                """,
+                (source_instance,),
+            )
+
+            rows = cursor.fetchall()
+
+        return [
+            {
+                "metadata_type": row[0],
+                "uid": row[1],
+                "attempt_count": row[2],
+            }
+            for row in rows
+        ]

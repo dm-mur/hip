@@ -42,6 +42,9 @@ def make_bronze_record() -> DHIS2Record:
 
 def make_silver_record(
     bronze_id: int,
+    *,
+    category_option_combo: str | None = None,
+    category_option_combo_name: str | None = None,
 ) -> SilverDHIS2Observation:
     return SilverDHIS2Observation(
         bronze_id=bronze_id,
@@ -56,8 +59,8 @@ def make_silver_record(
         org_unit="SILVER_TEST_ORG_UNIT",
         org_unit_name="Silver Test Organisation",
         period="202608",
-        category_option_combo=None,
-        category_option_combo_name=None,
+        category_option_combo=category_option_combo,
+        category_option_combo_name=category_option_combo_name,
         attribute_option_combo=None,
         attribute_option_combo_name=None,
         value_raw="999",
@@ -147,6 +150,208 @@ def test_silver_postgres_loader_is_idempotent():
     assert quality_status == "VALID"
 
     # Silver must be deleted before its Bronze parent.
+    with silver_loader._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            DELETE FROM silver.dhis2_observation
+            WHERE bronze_id = %s
+            """,
+            (bronze_id,),
+        )
+
+        cursor.execute(
+            """
+            DELETE FROM bronze.dhis2_data
+            WHERE bronze_id = %s
+            """,
+            (bronze_id,),
+        )
+
+def test_silver_postgres_loader_backfills_category_option_combo_name():
+    settings = DatabaseSettings.from_environment()
+
+    bronze_loader = PostgresLoader(settings)
+    silver_loader = SilverPostgresLoader(settings)
+
+    source_instance = "silver_integration_test"
+    uid = "SILVER_TEST_COC"
+    resolved_name = "Silver Test Category Option Combo"
+
+    with bronze_loader._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            DELETE FROM silver.dhis2_observation
+            WHERE bronze_id IN (
+                SELECT bronze_id
+                FROM bronze.dhis2_data
+                WHERE record_hash = %s
+            )
+            """,
+            (TEST_RECORD_HASH,),
+        )
+
+        cursor.execute(
+            """
+            DELETE FROM bronze.dhis2_data
+            WHERE record_hash = %s
+            """,
+            (TEST_RECORD_HASH,),
+        )
+
+    bronze_loader.load([make_bronze_record()])
+
+    with bronze_loader._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT bronze_id
+            FROM bronze.dhis2_data
+            WHERE record_hash = %s
+              AND source_instance = %s
+            """,
+            (
+                TEST_RECORD_HASH,
+                source_instance,
+            ),
+        )
+
+        bronze_id = cursor.fetchone()[0]
+
+    silver_loader.load(
+        [
+            make_silver_record(
+                bronze_id,
+                category_option_combo=uid,
+                category_option_combo_name=None,
+            )
+        ]
+    )
+
+    updated = silver_loader.backfill_metadata_name(
+        source_instance=source_instance,
+        metadata_type="CATEGORY_OPTION_COMBO",
+        uid=uid,
+        name=resolved_name,
+    )
+
+    assert updated == 1
+
+    with silver_loader._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT category_option_combo_name
+            FROM silver.dhis2_observation
+            WHERE bronze_id = %s
+            """,
+            (bronze_id,),
+        )
+
+        row = cursor.fetchone()
+
+    assert row is not None
+    assert row[0] == resolved_name
+
+    # Silver must be deleted before its Bronze parent.
+    with silver_loader._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            DELETE FROM silver.dhis2_observation
+            WHERE bronze_id = %s
+            """,
+            (bronze_id,),
+        )
+
+        cursor.execute(
+            """
+            DELETE FROM bronze.dhis2_data
+            WHERE bronze_id = %s
+            """,
+            (bronze_id,),
+        )
+
+def test_silver_postgres_loader_does_not_overwrite_existing_metadata_name():
+    settings = DatabaseSettings.from_environment()
+
+    bronze_loader = PostgresLoader(settings)
+    silver_loader = SilverPostgresLoader(settings)
+
+    source_instance = "silver_integration_test"
+    uid = "SILVER_TEST_COC"
+    existing_name = "Existing Category Option Combo"
+    recovered_name = "Recovered Category Option Combo"
+
+    with bronze_loader._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            DELETE FROM silver.dhis2_observation
+            WHERE bronze_id IN (
+                SELECT bronze_id
+                FROM bronze.dhis2_data
+                WHERE record_hash = %s
+            )
+            """,
+            (TEST_RECORD_HASH,),
+        )
+
+        cursor.execute(
+            """
+            DELETE FROM bronze.dhis2_data
+            WHERE record_hash = %s
+            """,
+            (TEST_RECORD_HASH,),
+        )
+
+    bronze_loader.load([make_bronze_record()])
+
+    with bronze_loader._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT bronze_id
+            FROM bronze.dhis2_data
+            WHERE record_hash = %s
+              AND source_instance = %s
+            """,
+            (
+                TEST_RECORD_HASH,
+                source_instance,
+            ),
+        )
+
+        bronze_id = cursor.fetchone()[0]
+
+    silver_loader.load(
+        [
+            make_silver_record(
+                bronze_id,
+                category_option_combo=uid,
+                category_option_combo_name=existing_name,
+            )
+        ]
+    )
+
+    updated = silver_loader.backfill_metadata_name(
+        source_instance=source_instance,
+        metadata_type="CATEGORY_OPTION_COMBO",
+        uid=uid,
+        name=recovered_name,
+    )
+
+    assert updated == 0
+
+    with silver_loader._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT category_option_combo_name
+            FROM silver.dhis2_observation
+            WHERE bronze_id = %s
+            """,
+            (bronze_id,),
+        )
+
+        row = cursor.fetchone()
+
+    assert row is not None
+    assert row[0] == existing_name
+
     with silver_loader._connection() as connection, connection.cursor() as cursor:
         cursor.execute(
             """

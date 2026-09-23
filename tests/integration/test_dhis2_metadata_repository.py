@@ -537,3 +537,126 @@ def test_metadata_repository_reopens_resolved_metadata():
                 uid,
             ),
         )
+
+def test_metadata_repository_fetches_unresolved_metadata():
+    settings = DatabaseSettings.from_environment()
+    repository = DHIS2MetadataRepository(settings)
+
+    source_instance = "metadata_retry_test"
+
+    test_records = [
+        ("DATA_ELEMENT", "DE_RETRY_001"),
+        ("ORG_UNIT", "OU_RETRY_001"),
+        ("CATEGORY_OPTION_COMBO", "COC_RETRY_001"),
+    ]
+
+    with repository._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            DELETE FROM silver.dhis2_metadata_resolution
+            WHERE source_instance = %s
+            """,
+            (source_instance,),
+        )
+
+        for metadata_type, uid in test_records:
+            cursor.execute(
+                """
+                INSERT INTO silver.dhis2_metadata_resolution (
+                    source_instance,
+                    metadata_type,
+                    uid
+                )
+                VALUES (%s, %s, %s)
+                """,
+                (
+                    source_instance,
+                    metadata_type,
+                    uid,
+                ),
+            )
+
+    result = repository.fetch_unresolved(
+        source_instance=source_instance,
+    )
+
+    assert result == [
+        {
+            "metadata_type": "CATEGORY_OPTION_COMBO",
+            "uid": "COC_RETRY_001",
+            "attempt_count": 1,
+        },
+        {
+            "metadata_type": "DATA_ELEMENT",
+            "uid": "DE_RETRY_001",
+            "attempt_count": 1,
+        },
+        {
+            "metadata_type": "ORG_UNIT",
+            "uid": "OU_RETRY_001",
+            "attempt_count": 1,
+        },
+    ]
+
+    with repository._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            DELETE FROM silver.dhis2_metadata_resolution
+            WHERE source_instance = %s
+            """,
+            (source_instance,),
+        )
+
+def test_metadata_repository_fetch_unresolved_excludes_resolved_metadata():
+    settings = DatabaseSettings.from_environment()
+    repository = DHIS2MetadataRepository(settings)
+
+    source_instance = "metadata_retry_filter_test"
+
+    with repository._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            DELETE FROM silver.dhis2_metadata_resolution
+            WHERE source_instance = %s
+            """,
+            (source_instance,),
+        )
+
+    repository.record_unresolved(
+        source_instance=source_instance,
+        metadata_type="DATA_ELEMENT",
+        uid="DE_STILL_UNRESOLVED",
+    )
+
+    repository.record_unresolved(
+        source_instance=source_instance,
+        metadata_type="DATA_ELEMENT",
+        uid="DE_NOW_RESOLVED",
+    )
+
+    repository.mark_resolved(
+        source_instance=source_instance,
+        metadata_type="DATA_ELEMENT",
+        uid="DE_NOW_RESOLVED",
+    )
+
+    result = repository.fetch_unresolved(
+        source_instance=source_instance,
+    )
+
+    assert result == [
+        {
+            "metadata_type": "DATA_ELEMENT",
+            "uid": "DE_STILL_UNRESOLVED",
+            "attempt_count": 1,
+        }
+    ]
+
+    with repository._connection() as connection, connection.cursor() as cursor:
+        cursor.execute(
+            """
+            DELETE FROM silver.dhis2_metadata_resolution
+            WHERE source_instance = %s
+            """,
+            (source_instance,),
+        )

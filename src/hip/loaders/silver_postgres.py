@@ -100,3 +100,57 @@ class SilverPostgresLoader:
             inserted_rows=inserted,
             duplicate_rows=duplicates,
         )
+
+    def backfill_metadata_name(
+        self,
+        *,
+        source_instance: str,
+        metadata_type: str,
+        uid: str,
+        name: str,
+    ) -> int:
+        """Backfill a resolved metadata name into existing Silver observations."""
+
+        columns_by_type = {
+            "DATA_ELEMENT": (
+                "data_element",
+                "data_element_name",
+            ),
+            "ORG_UNIT": (
+                "org_unit",
+                "org_unit_name",
+            ),
+            "CATEGORY_OPTION_COMBO": (
+                "category_option_combo",
+                "category_option_combo_name",
+            ),
+            "ATTRIBUTE_OPTION_COMBO": (
+                "attribute_option_combo",
+                "attribute_option_combo_name",
+            ),
+        }
+
+        if metadata_type not in columns_by_type:
+            raise ValueError(
+                f"Unsupported metadata type: {metadata_type}"
+            )
+
+        uid_column, name_column = columns_by_type[metadata_type]
+
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.execute(
+                f"""
+                UPDATE silver.dhis2_observation
+                SET {name_column} = %s
+                WHERE source_instance = %s
+                AND {uid_column} = %s
+                AND {name_column} IS NULL
+                """,
+                (
+                    name,
+                    source_instance,
+                    uid,
+                ),
+            )
+
+            return cursor.rowcount
