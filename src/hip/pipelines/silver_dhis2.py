@@ -3,6 +3,7 @@ import psycopg
 from hip.config.database import DatabaseSettings
 from hip.loaders.result import LoadResult
 from hip.loaders.silver_postgres import SilverPostgresLoader
+from hip.metadata.dataset_sync import DHIS2DatasetMetadataSync
 from hip.metadata.resolver import DHIS2MetadataResolver
 from hip.repositories.bronze import BronzeDHIS2Repository
 from hip.transformers.silver_dhis2 import SilverDHIS2Transformer
@@ -16,12 +17,14 @@ class SilverDHIS2Pipeline:
         *,
         settings: DatabaseSettings,
         repository: BronzeDHIS2Repository,
+        dataset_sync: DHIS2DatasetMetadataSync,
         metadata_resolver: DHIS2MetadataResolver,
         transformer: SilverDHIS2Transformer,
         loader: SilverPostgresLoader,
     ) -> None:
         self.settings = settings
         self.repository = repository
+        self.dataset_sync = dataset_sync
         self.metadata_resolver = metadata_resolver
         self.transformer = transformer
         self.loader = loader
@@ -47,6 +50,18 @@ class SilverDHIS2Pipeline:
 
         if not bronze_records:
             return self.loader.load([])
+
+        dataset_ids = {
+            record["dataset_id"]
+            for record in bronze_records
+            if record.get("dataset_id")
+        }
+
+        for dataset_id in sorted(dataset_ids):
+            self.dataset_sync.sync(
+                source_instance=source_instance,
+                dataset_id=dataset_id,
+            )
 
         data_elements = {
             record["data_element"]

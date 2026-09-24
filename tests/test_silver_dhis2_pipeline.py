@@ -16,6 +16,7 @@ def test_silver_pipeline_processes_unprocessed_bronze_records():
     )
 
     repository = Mock()
+    dataset_sync = Mock()
     metadata_resolver = Mock()
     transformer = Mock()
     loader = Mock()
@@ -89,6 +90,7 @@ def test_silver_pipeline_processes_unprocessed_bronze_records():
         pipeline = SilverDHIS2Pipeline(
             settings=settings,
             repository=repository,
+            dataset_sync=dataset_sync,
             metadata_resolver=metadata_resolver,
             transformer=transformer,
             loader=loader,
@@ -154,6 +156,7 @@ def test_silver_pipeline_handles_no_unprocessed_records():
     )
 
     repository = Mock()
+    dataset_sync = Mock()
     metadata_resolver = Mock()
     transformer = Mock()
     loader = Mock()
@@ -174,6 +177,7 @@ def test_silver_pipeline_handles_no_unprocessed_records():
         pipeline = SilverDHIS2Pipeline(
             settings=settings,
             repository=repository,
+            dataset_sync=dataset_sync,
             metadata_resolver=metadata_resolver,
             transformer=transformer,
             loader=loader,
@@ -207,6 +211,7 @@ def test_silver_pipeline_preserves_existing_bronze_metadata():
     )
 
     repository = Mock()
+    dataset_sync = Mock()
     metadata_resolver = Mock()
     transformer = Mock()
     loader = Mock()
@@ -262,6 +267,7 @@ def test_silver_pipeline_preserves_existing_bronze_metadata():
         pipeline = SilverDHIS2Pipeline(
             settings=settings,
             repository=repository,
+            dataset_sync=dataset_sync,
             metadata_resolver=metadata_resolver,
             transformer=transformer,
             loader=loader,
@@ -304,3 +310,145 @@ def test_silver_pipeline_preserves_existing_bronze_metadata():
 
     assert result.inserted_rows == 1
     assert result.duplicate_rows == 0
+
+def test_silver_pipeline_syncs_each_distinct_dataset_once():
+    settings = DatabaseSettings(
+        host="localhost",
+        port=5435,
+        database="hip",
+        username="postgres",
+        password="test_password",
+    )
+
+    repository = Mock()
+    dataset_sync = Mock()
+    metadata_resolver = Mock()
+    transformer = Mock()
+    loader = Mock()
+
+    bronze_records = [
+        {
+            "bronze_id": 301,
+            "source_instance": "test_instance",
+            "dataset_id": "DATASET_A",
+            "data_element": "DE001",
+            "org_unit": "OU001",
+            "category_option_combo": None,
+            "attribute_option_combo": None,
+        },
+        {
+            "bronze_id": 302,
+            "source_instance": "test_instance",
+            "dataset_id": "DATASET_A",
+            "data_element": "DE002",
+            "org_unit": "OU001",
+            "category_option_combo": None,
+            "attribute_option_combo": None,
+        },
+        {
+            "bronze_id": 303,
+            "source_instance": "test_instance",
+            "dataset_id": "DATASET_B",
+            "data_element": "DE003",
+            "org_unit": "OU002",
+            "category_option_combo": None,
+            "attribute_option_combo": None,
+        },
+    ]
+
+    repository.fetch_unprocessed.return_value = bronze_records
+
+    metadata_resolver.resolve_many.return_value = (
+        DHIS2MetadataLookups(
+            data_elements={},
+            org_units={},
+            category_option_combos={},
+            attribute_option_combos={},
+        )
+    )
+
+    transformer.transform.side_effect = [
+        Mock(),
+        Mock(),
+        Mock(),
+    ]
+
+    loader.load.return_value = LoadResult(
+        inserted_rows=3,
+        duplicate_rows=0,
+    )
+
+    connection = MagicMock()
+
+    with patch(
+        "hip.pipelines.silver_dhis2.psycopg.connect",
+        return_value=connection,
+    ):
+        pipeline = SilverDHIS2Pipeline(
+            settings=settings,
+            repository=repository,
+            dataset_sync=dataset_sync,
+            metadata_resolver=metadata_resolver,
+            transformer=transformer,
+            loader=loader,
+        )
+
+        pipeline.run(
+            source_instance="test_instance",
+        )
+
+    assert dataset_sync.sync.call_count == 2
+
+    dataset_sync.sync.assert_any_call(
+        source_instance="test_instance",
+        dataset_id="DATASET_A",
+    )
+
+    dataset_sync.sync.assert_any_call(
+        source_instance="test_instance",
+        dataset_id="DATASET_B",
+    )
+
+
+def test_silver_pipeline_does_not_sync_datasets_when_no_records():
+    settings = DatabaseSettings(
+        host="localhost",
+        port=5435,
+        database="hip",
+        username="postgres",
+        password="test_password",
+    )
+
+    repository = Mock()
+    dataset_sync = Mock()
+    metadata_resolver = Mock()
+    transformer = Mock()
+    loader = Mock()
+
+    repository.fetch_unprocessed.return_value = []
+
+    loader.load.return_value = LoadResult(
+        inserted_rows=0,
+        duplicate_rows=0,
+    )
+
+    connection = MagicMock()
+
+    with patch(
+        "hip.pipelines.silver_dhis2.psycopg.connect",
+        return_value=connection,
+    ):
+        pipeline = SilverDHIS2Pipeline(
+            settings=settings,
+            repository=repository,
+            dataset_sync=dataset_sync,
+            metadata_resolver=metadata_resolver,
+            transformer=transformer,
+            loader=loader,
+        )
+
+        pipeline.run(
+            source_instance="test_instance",
+        )
+
+    dataset_sync.sync.assert_not_called()
