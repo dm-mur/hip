@@ -1,0 +1,44 @@
+version: 2
+
+models:
+  - name: dhis2_reporting_summary
+    description: >
+      Reporting-level summary of DHIS2 observations grouped by
+      source instance, dataset, organisation unit, and reporting period.
+
+    columns:
+      - name: source_instance
+        data_tests:
+          - not_null
+
+      - name: dataset_id
+        data_tests:
+          - not_null
+
+      - name: org_unit
+        data_tests:
+          - not_null
+
+      - name: period
+        data_tests:
+          - not_null
+
+      - name: observation_count
+        data_tests:
+          - not_null
+
+      - name: valid_observation_count
+        data_tests:
+          - not_null
+
+      - name: non_numeric_observation_count
+        data_tests:
+          - not_null
+
+      - name: invalid_observation_count
+        data_tests:
+          - not_null
+
+      - name: reported_value_count
+        data_tests:
+          - not_null
