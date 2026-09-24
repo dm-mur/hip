@@ -43,3 +43,8 @@ flyway.conf
 
 # Local secrets
 secrets/
+
+# dbt
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/

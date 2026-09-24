@@ -1,0 +1,52 @@
+version: 2
+
+models:
+  - name: stg_dhis2_observation
+    description: >
+      Staging representation of curated DHIS2 observations from the
+      HIP Silver layer.
+
+    columns:
+      - name: silver_id
+        description: "Unique identifier for the Silver observation."
+        data_tests:
+          - not_null
+          - unique
+
+      - name: bronze_id
+        description: "Identifier of the originating Bronze record."
+        data_tests:
+          - not_null
+          - unique
+
+      - name: batch_id
+        description: "ETL batch that produced the Silver observation."
+        data_tests:
+          - not_null
+
+      - name: source_instance
+        description: "DHIS2 instance from which the observation originated."
+        data_tests:
+          - not_null
+
+      - name: data_element
+        data_tests:
+          - not_null
+
+      - name: org_unit
+        data_tests:
+          - not_null
+
+      - name: period
+        data_tests:
+          - not_null
+
+      - name: quality_status
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - VALID
+                  - NON_NUMERIC
+                  - INVALID

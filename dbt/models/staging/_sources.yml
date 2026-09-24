@@ -1,0 +1,13 @@
+version: 2
+
+sources:
+  - name: silver
+    description: "HIP curated Silver-layer data managed by the Python/Flyway pipeline."
+    schema: silver
+
+    tables:
+      - name: dhis2_observation
+        description: "Curated DHIS2 observations processed from the Bronze layer."
+
+      - name: dhis2_dataset
+        description: "Authoritative DHIS2 dataset metadata."
