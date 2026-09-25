@@ -1,0 +1,57 @@
+x-airflow-common:
+  &airflow-common
+  image: apache/airflow:3.1.7
+
+  env_file:
+    - .env
+
+  environment:
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/airflow
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-api-server:8080/execution/
+    AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_JWT_SECRET}
+
+  volumes:
+    - ../airflow/dags:/opt/airflow/dags
+    - ../airflow/logs:/opt/airflow/logs
+    - ../airflow/plugins:/opt/airflow/plugins
+    - ../airflow/config:/opt/airflow/config
+
+  networks:
+    - hip-network
+
+services:
+  airflow-init:
+    <<: *airflow-common
+    container_name: hip-airflow-init
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - airflow db migrate
+
+  airflow-api-server:
+    <<: *airflow-common
+    container_name: hip-airflow-api-server
+    restart: unless-stopped
+    command: api-server
+
+    ports:
+      - "8080:8080"
+
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: hip-airflow-scheduler
+    restart: unless-stopped
+    command: scheduler
+
+  airflow-dag-processor:
+    <<: *airflow-common
+    container_name: hip-airflow-dag-processor
+    restart: unless-stopped
+    command: dag-processor
+
+networks:
+  hip-network:
+    external: true
+    name: docker_hip-network

@@ -48,3 +48,7 @@ secrets/
 dbt/target/
 dbt/logs/
 dbt/dbt_packages/
+
+# Airflow
+airflow/logs/
+airflow/config/
