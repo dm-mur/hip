@@ -1,6 +1,6 @@
 x-airflow-common:
   &airflow-common
-  image: apache/airflow:3.1.7
+  image: hip-airflow:dev
 
   env_file:
     - .env
@@ -12,11 +12,19 @@ x-airflow-common:
     AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-api-server:8080/execution/
     AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_JWT_SECRET}
 
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: "5432"
+
+    DBT_LOG_PATH: /opt/airflow/logs/dbt
+    DBT_TARGET_PATH: /opt/airflow/logs/dbt/target
+
   volumes:
     - ../airflow/dags:/opt/airflow/dags
     - ../airflow/logs:/opt/airflow/logs
     - ../airflow/plugins:/opt/airflow/plugins
     - ../airflow/config:/opt/airflow/config
+    - ../dbt:/opt/hip/dbt
+    - ./airflow/dbt/profiles.yml:/home/airflow/.dbt/profiles.yml:ro
 
   networks:
     - hip-network
