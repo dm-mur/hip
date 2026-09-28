@@ -1,12 +1,11 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from airflow.sdk import DAG, task
-
 
 with DAG(
     dag_id="hip_smoke_test",
     description="Verify HIP Airflow orchestration is working",
-    start_date=datetime(2026, 1, 1),
+    start_date=datetime(2026, 1, 1, tzinfo=UTC),
     schedule=None,
     catchup=False,
     tags=["hip", "test"],
