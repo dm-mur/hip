@@ -11,3 +11,11 @@ sources:
 
       - name: dhis2_dataset
         description: "Authoritative DHIS2 dataset metadata."
+
+  - name: gold
+    description: "HIP Gold-layer views managed by Flyway and exposed to analytics consumers."
+    schema: gold
+
+    tables:
+      - name: pipeline_health
+        description: "Operational execution history for HIP ETL batches."

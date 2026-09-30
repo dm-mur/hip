@@ -1,0 +1,81 @@
+version: 2
+
+models:
+  - name: pipeline_run_summary
+    description: >
+      Operator-facing summary of HIP pipeline executions, including
+      processing outcomes, inserted records, duplicates, failures,
+      execution duration, and derived operational rates.
+
+    columns:
+      - name: batch_id
+        description: "Unique identifier for the HIP ETL batch."
+        data_tests:
+          - not_null
+          - unique
+
+      - name: source_system
+        description: "Source system processed by the pipeline."
+        data_tests:
+          - not_null
+
+      - name: environment
+        description: "HIP execution environment."
+        data_tests:
+          - not_null
+
+      - name: status
+        description: "Final or current execution status."
+        data_tests:
+          - not_null
+
+      - name: total_rows
+        description: "Total source records encountered by the batch."
+        data_tests:
+          - not_null
+
+      - name: successful_rows
+        description: >
+          Records successfully handled by HIP, including newly inserted
+          records and records safely identified as duplicates.
+        data_tests:
+          - not_null
+
+      - name: inserted_rows
+        description: >
+          Records newly inserted during the batch, calculated as
+          successful_rows minus duplicate_rows.
+        data_tests:
+          - not_null
+
+      - name: duplicate_rows
+        description: "Successfully handled records skipped because they already existed."
+        data_tests:
+          - not_null
+
+      - name: failed_rows
+        description: "Records that failed processing or validation."
+        data_tests:
+          - not_null
+
+      - name: duplicate_rate
+        description: "Proportion of total source records identified as duplicates."
+        data_tests:
+          - not_null
+
+      - name: failure_rate
+        description: "Proportion of total source records that failed processing."
+        data_tests:
+          - not_null
+
+      - name: is_success
+        data_tests:
+          - not_null
+
+      - name: is_failure
+        data_tests:
+          - not_null
+
+      - name: is_complete
+        data_tests:
+          - not_null
